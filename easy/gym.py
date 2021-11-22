@@ -4,14 +4,14 @@ import sys
 from env import EnvBernoulli, EnvGaussian
 from bandit import Bandit
 
-def gains(method, environment, k=10, N=100, T=1000):
+def gains(method, environment, k=10, N=100, T=1000, extra=None):
     env = None
     if environment == "B":
         env = EnvBernoulli(k)
     elif environment == "G":
         env = EnvGaussian(k)
         
-    bandits = [Bandit(method, k, env) for _ in range(N)]
+    bandits = [Bandit(method, k, env, extra=extra) for _ in range(N)]
 
     ts = np.arange(1, T + 1)
 
@@ -22,11 +22,11 @@ def gains(method, environment, k=10, N=100, T=1000):
             bandit.update(t)
     print()
 
-    Qstars = []
+    aStar = []
     for bandit in bandits:
-        Qstars.append(np.argmax(bandit.Q))
+        aStar.append(bandit.best_action())
 
-    return (env.getExpecteds(), np.array(Qstars))
+    return (env.getExpecteds(), np.array(aStar))
     
     
 
