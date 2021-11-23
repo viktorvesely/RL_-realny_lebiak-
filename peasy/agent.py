@@ -1,6 +1,8 @@
 import numpy as np
 from bandits import Bandit
 
+INF = 99999999
+
 class ExplorationMethod(Enum):
     GREEDY = 1
     EGREEDY = 2
@@ -18,7 +20,12 @@ class Agent:
         self.actions = actionlist
         self.t = 1
         self.Q = np.zeros(len(self.actions))
+
+        # extra variables for particular algorithms
         self.epsilon = 0.1
+        self.c = 2
+        self.Na = np.zeros(len(self.actions))
+        self.U = np.ones(len(self.actions))*INF
 
     def selectMethod(self, eMethod):
         if eMethod == ExplorationMethod.GREEDY:
@@ -59,8 +66,22 @@ class Agent:
         return self.greedy()
     
     def soft(self):
-
+        exponents = np.exp(self.Q)
+        softmax = exponents/np.sum(exponents)
+        return np.random.choice(np.arange(len(self.actions)), p=softmax)
+    
+    def ucb(self):
+        selected = np.random.choice(np.argmax(self.Q + self.U))
+        #update uncertainties
+        self.Na[selected] += 1
+        self.U[selected] = self.c*np.sqrt(np.log(self.t)/self.Na[selected])
+        return selected
     
     def incrementStep(self, action, bandit: Bandit):
         self.Q[action] += (1/self.t)*(bandit.getReward(action) - self.Q[action])
         self.t += 1
+
+    def makeAction(self, bandit: Bandit):
+        action = self.algorithm()
+        self.incrementStep(action, bandit)
+        return action
