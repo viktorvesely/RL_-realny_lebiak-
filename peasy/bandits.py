@@ -41,6 +41,13 @@ class Bandit():
             return mean
         else:
             raise Exception("You should not reach this part, invalid BanditType")
+    
+    def getBestAction(self):
+        actions = self.getPossibleActions()
+        expected = []
+        for action in actions:
+            expected.append(self.getExpectedValue())
+        return np.argmax(expected)
 
 
 
