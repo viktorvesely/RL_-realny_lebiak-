@@ -14,36 +14,39 @@ class ExplorationMethod(Enum):
 
 class Agent:
     
-    def __init__(self, eMethod: ExplorationMethod, actionlist: list) -> None:
+    def __init__(self, eMethod: ExplorationMethod, actionlist: np.ndarray, environment: Bandit) -> None:
         self.method = eMethod
         self.algorithm = self.selectMethod(self.method)
         self.actions = actionlist
+        self.env = environment
         self.t = 1
-        self.Q = np.zeros(len(self.actions))
+        self.Q = np.zeros(self.actions.size)
 
-        # extra variables for particular algorithms
-        self.epsilon = 0.1
-        self.c = 2
-        self.Na = np.zeros(len(self.actions))
-        self.U = np.ones(len(self.actions))*INF
 
     def selectMethod(self, eMethod):
         if eMethod == ExplorationMethod.GREEDY:
             return self.greedy
 
         elif eMethod == ExplorationMethod.EGREEDY:
+            self.epsilon = 0.1
             return self.egreedy
 
         elif eMethod == ExplorationMethod.OIV:
+            self.Q = np.ones(self.actions.size)*10
             return self.oiv
         
         elif eMethod == ExplorationMethod.SOFT:
             return self.soft
         
         elif eMethod == ExplorationMethod.UCB:
+            self.c = 2
+            self.Na = np.zeros(self.actions.size)
+            self.U = np.ones(self.actions.size)*INF
             return self.ucb
         
         elif eMethod == ExplorationMethod.AP:
+            self.H = np.zeros(self.actions.size)
+            self.pi = self.getSoftmaxDistribution(np.zeros(self.actions.size))
             return self.ap
     
     def greedy(self):
@@ -52,23 +55,20 @@ class Agent:
     
     def egreedy(self):
         # exploration
-        nActions = len(self.actions)
+        nActions = self.actions.size
         probabilities = np.ones(nActions) * self.epsilon/nActions
         # exploitation -- the 1 - e probability is evenly distributed across all the best options
         best = np.argmax(self.Q)
         bestprob = (1 - self.epsilon)/best.size
         probabilities[best] += bestprob
-        return np.random.choice(np.arange(len(self.actions)), p=probabilities)
+        return np.random.choice(self.actions, p=probabilities)
 
     def oiv(self):
-        if self.t == 1:
-            self.Q = np.ones(len(self.actions))*10
         return self.greedy()
     
     def soft(self):
-        exponents = np.exp(self.Q)
-        softmax = exponents/np.sum(exponents)
-        return np.random.choice(np.arange(len(self.actions)), p=softmax)
+        softmax = self.getSoftmaxDistribution(self.Q)
+        return np.random.choice(self.actions, p=softmax)
     
     def ucb(self):
         selected = np.random.choice(np.argmax(self.Q + self.U))
@@ -77,11 +77,28 @@ class Agent:
         self.U[selected] = self.c*np.sqrt(np.log(self.t)/self.Na[selected])
         return selected
     
-    def incrementStep(self, action, bandit: Bandit):
-        self.Q[action] += (1/self.t)*(bandit.getReward(action) - self.Q[action])
+    def ap(self):
+        action = np.random.choice(self.actions, p=self.pi)
+        reward = self.env.getReward(action)
+
+        mask = np.zeros(self.actions.size, np.bool)
+        mask[action] = True
+
+        self.H[mask] += (1/self.t)*(reward - self.Q)*(1-self.pi[mask])
+        self.H[~mask] -= (1/self.t)*(reward - self.Q)*(self.pi[~mask])
+
+        self.pi = self.getSoftmaxDistribution(self.H)
+        return np.random.choice(self.actions, p=self.pi)
+        
+    def getSoftmaxDistribution(self, array):
+        exponents = np.exp(array)
+        return exponents/np.sum(exponents)
+
+    def incrementStep(self, action):
+        self.Q[action] += (1/self.t)*(self.env.getReward(action) - self.Q[action])
         self.t += 1
 
-    def makeAction(self, bandit: Bandit):
+    def makeAction(self):
         action = self.algorithm()
-        self.incrementStep(action, bandit)
+        self.incrementStep(action)
         return action
