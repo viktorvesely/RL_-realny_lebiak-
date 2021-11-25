@@ -1,5 +1,6 @@
 import numpy as np
 from bandits import Bandit
+from enum import Enum
 
 INF = 99999999
 
@@ -16,11 +17,11 @@ class Agent:
     
     def __init__(self, eMethod: ExplorationMethod, actionlist: np.ndarray, environment: Bandit) -> None:
         self.method = eMethod
-        self.algorithm = self.initMethod(self.method)
         self.actions = actionlist
         self.env = environment
         self.t = 1
         self.Q = np.zeros(self.actions.size)
+        self.algorithm = self.initMethod(self.method)
 
 
     def initMethod(self, eMethod):
@@ -50,8 +51,7 @@ class Agent:
             return self.ap
     
     def greedy(self):
-        # if there are multiple best actions choose randomly
-        action = np.random.choice(np.argmax(self.Q))
+        action = np.argmax(self.Q)
         reward = self.env.getReward(action)
         return action, reward
     
@@ -79,7 +79,7 @@ class Agent:
         return action, reward
     
     def ucb(self):
-        action = np.random.choice(np.argmax(self.Q + self.U))
+        action = np.argmax(self.Q + self.U)
 
         #update uncertainties
         self.Na[action] += 1
@@ -94,8 +94,8 @@ class Agent:
         mask = np.zeros(self.actions.size, np.bool)
         mask[action] = True
 
-        self.H[mask] += (1/self.t)*(reward - self.Q)*(1-self.pi[mask])
-        self.H[~mask] -= (1/self.t)*(reward - self.Q)*(self.pi[~mask])
+        self.H[mask] += (1/self.t)*(reward - self.Q[mask])*(1-self.pi[mask])
+        self.H[~mask] -= (1/self.t)*(reward - self.Q[~mask])*(self.pi[~mask])
 
         self.pi = self.getSoftmaxDistribution(self.H)
         return action, reward

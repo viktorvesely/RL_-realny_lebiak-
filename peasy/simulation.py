@@ -10,7 +10,7 @@ def simulate(learningMethod: ExplorationMethod, btype: BanditType, N: int, T:int
 
     for i in range(0, N):
         bandit = Bandit(btype, k)
-        player = Agent(learningMethod, bandit, btype)
+        player = Agent(learningMethod, bandit.getPossibleActions(),  bandit)
 
         
         for j in range(0, T):
@@ -18,7 +18,7 @@ def simulate(learningMethod: ExplorationMethod, btype: BanditType, N: int, T:int
             bestAction = bandit.getBestAction()
             if bestAction.size != 1:
                 print("Error, there is more than one optimal action")
-            resultsActions[i,j] = action == bestAction()[0]
+            resultsActions[i,j] = action == bestAction
             resultsRewards[i,j] = reward
 
     return resultsActions, resultsRewards
@@ -40,7 +40,7 @@ def summarise(actions, rewards, N, T):
         summarisedActions[key] = (np.mean(value, axis=0))*100
 
     summarisedRewards = {}
-    for key, value in actions.items():
+    for key, value in rewards.items():
         summarisedRewards[key] = np.mean(value, axis=0)
     
     return summarisedActions, summarisedRewards

@@ -1,5 +1,6 @@
 import random
 import numpy as np
+from enum import Enum
 
 class BanditType(Enum):
     GAUSSIAN = 1
@@ -18,7 +19,7 @@ class Bandit():
             for _ in range(0, k):
                 mean = random.random()
                 std = random.random()/2
-                self.Arms.append(tuple(mean, std))
+                self.Arms.append(tuple([mean, std]))
 
     def getReward(self, action):
         if self.type == BanditType.BERNOULLI:
@@ -31,7 +32,7 @@ class Bandit():
             raise Exception("You should not reach this part, invalid BanditType")
     
     def getPossibleActions(self):
-        return list(range(0, self.k))
+        return np.array(list(range(0, self.nArms)))
     
     def getExpectedValue(self, action):
         if self.type == BanditType.BERNOULLI:
@@ -46,7 +47,7 @@ class Bandit():
         actions = self.getPossibleActions()
         expected = []
         for action in actions:
-            expected.append(self.getExpectedValue())
+            expected.append(self.getExpectedValue(action))
         return np.argmax(expected)
 
 
