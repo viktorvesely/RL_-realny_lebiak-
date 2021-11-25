@@ -29,7 +29,7 @@ def simulateAll(N: int, T:int, k:int):
 
     for eMethod in ExplorationMethod:
         for bType in BanditType:
-            actions[(eMethod, bType)], rewards[(eMethod, bType)] = simulate(learningMethod, bType, N, T, k)
+            actions[(eMethod, bType)], rewards[(eMethod, bType)] = simulate(eMethod, bType, N, T, k)
     
     return actions, rewards
 
