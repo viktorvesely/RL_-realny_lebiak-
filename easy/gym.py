@@ -5,28 +5,27 @@ from env import EnvBernoulli, EnvGaussian
 from bandit import Bandit
 
 def gains(method, environment, k=10, N=100, T=1000, extra=None):
-    env = None
-    if environment == "B":
-        env = EnvBernoulli(k)
-    elif environment == "G":
-        env = EnvGaussian(k)
         
-    bandits = [Bandit(method, k, env, extra=extra) for _ in range(N)]
+    bandits = [Bandit(method, k, EnvBernoulli(k) if environment == "B" else EnvGaussian(k), extra=extra) for _ in range(N)]
 
     ts = np.arange(1, T + 1)
 
-
+    accs = []
     for t in ts:
         sys.stdout.write('t=%s\r' % str(t / (T + 1) * 100))
+        correct = 0
         for bandit in bandits:
             bandit.update(t)
+            correct += 1 if bandit.best_action() == bandit.env.bestAction() else 0
+        accs.append(correct / len(bandits))
+            
     print()
 
-    aStar = []
+    ranks = []
     for bandit in bandits:
-        aStar.append(bandit.best_action())
+        ranks.append(bandit.env.evaluateAction(bandit.best_action()))
 
-    return (env.getExpecteds(), np.array(aStar))
+    return (np.array(ranks), np.array(accs))
     
     
 

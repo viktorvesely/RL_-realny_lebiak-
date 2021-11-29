@@ -1,4 +1,7 @@
 import gym
+from bandit import BanditTypes as BT
 
-r = gym.gains("greedy", k=20, N=10, T=100)
+method = BT.GREEDY
+env = "G"
+r = gym.gains(method, env, k=20, N=10, T=100)
 print(r)

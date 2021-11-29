@@ -118,7 +118,6 @@ class Bandit():
         self.soft_max(t)
 
     def eps_greedy(self, t):
-        epsilon = self.extra
         action = self.best_action()
         reward = self.env.reward(action)
         self.increment(action, reward, t)

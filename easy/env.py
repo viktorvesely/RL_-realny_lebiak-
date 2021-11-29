@@ -34,6 +34,11 @@ class EnvGaussian:
     def bestAction(self):
         return np.argmax(self.gaussian.T[0])
 
+    def evaluateAction(self, action):
+        rankedActions = np.argsort(self.gaussian.T[0])[::-1]
+        rank = np.where(rankedActions == action)
+        return rank[0]
+
 class EnvBernoulli:
 
     def __init__(self, k):
@@ -50,4 +55,9 @@ class EnvBernoulli:
 
     def bestAction(self):
         return np.argmax(self.p)
+
+    def evaluateAction(self, action):
+        rankedActions = np.argsort(self.p)[::-1]
+        rank = np.where(rankedActions == action)
+        return rank[0]
     
