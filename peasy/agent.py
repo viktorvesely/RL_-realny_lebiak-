@@ -33,7 +33,7 @@ class Agent:
             return self.egreedy
 
         elif eMethod == ExplorationMethod.OIV:
-            self.Q = np.ones(self.actions.size)*10
+            self.Q = np.ones(self.actions.size)*2
             return self.oiv
         
         elif eMethod == ExplorationMethod.SOFT:

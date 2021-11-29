@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 from agent import Agent, ExplorationMethod
 from bandits import Bandit, BanditType
@@ -22,6 +23,29 @@ def simulate(learningMethod: ExplorationMethod, btype: BanditType, N: int, T:int
             resultsRewards[i,j] = reward
 
     return resultsActions, resultsRewards
+
+def simulateANDshow(learningMethod: ExplorationMethod, btype: BanditType, N: int, T:int, k:int):
+
+    actions, rewards  = simulate(learningMethod, btype, N, T, k)
+
+    actions = (np.mean(actions, axis=0))*100
+
+    rewards = np.mean(rewards, axis=0)
+
+
+    plt.rcParams["figure.figsize"] = (25,5)
+
+    x = list(range(1,T+1))
+    plot1 = plt.figure(1)
+    plt.plot(x, actions, linewidth=0.5)
+    plt.title(f"Percentage of optimal actions, {btype.name} distribution, {learningMethod.name}")
+    plt.legend()
+
+    plot2 = plt.figure(2)
+    plt.plot(x, rewards, linewidth=0.5)
+    plt.title(f"Average reward, {btype.name} distribution, {learningMethod.name}")
+    plt.legend()
+
 
 def simulateAll(N: int, T:int, k:int):
     actions = {}
