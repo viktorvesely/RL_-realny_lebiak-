@@ -1,5 +1,5 @@
 import gym
-from bandit import BanditTypes as BT
+from agent import AgentTypes as BT
 
 method = BT.GREEDY
 env = "G"

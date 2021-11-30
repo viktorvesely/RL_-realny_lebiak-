@@ -3,10 +3,10 @@ import random
 
 class EnvGaussian:
 
-    reward_min_mu = -5
-    reward_max_mu = 5
-    reward_min_sd = 1
-    reward_max_sd = 4
+    reward_min_mu = -1
+    reward_max_mu = 1
+    reward_min_sd = 0
+    reward_max_sd = 0.5
 
 
     def __init__(self, k):
