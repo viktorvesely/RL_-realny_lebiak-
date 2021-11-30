@@ -3,7 +3,7 @@ import random
 
 class EnvGaussian:
 
-    reward_min_mu = -1
+    reward_min_mu = 0
     reward_max_mu = 1
     reward_min_sd = 0
     reward_max_sd = 0.5
