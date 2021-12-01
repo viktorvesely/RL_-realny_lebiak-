@@ -13,7 +13,7 @@ def gains(method, environment, k=10, N=100, T=1000, extra=None):
     accs = []
     rewards = []
     for t in ts:
-        sys.stdout.write('t=%s\r' % str(t / (T + 1) * 100))
+        #sys.stdout.write('t=%s\r' % str(t / (T + 1) * 100))
         correct = 0
         reward = 0 
         for agent in agents:
