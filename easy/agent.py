@@ -28,7 +28,7 @@ class Agent():
         self.env = env
 
         self.algorithm = self.resolve_method()
-        self.Q = np.random.rand(k) * self.qScales # TODO this is probably not corret but the algs perform better
+        self.Q = np.random.rand(k) * self.qScales # TODO this is probably not correct but the algs perform better
 
     def resolve_method(self):
         m = self.method
