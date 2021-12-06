@@ -5,8 +5,14 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
 method = BT.SOFT_MAX
-env = "G"
-ranks, trace, reward = gym.gains(method, env, k=10, N=100, T=300)
+envName = "Bernoulli"
+k = 10
+N = 1000
+T = 500
+
+name = method.name.lower()
+env = envName[0]
+ranks, trace, reward = gym.gains(method, env, k=k, N=N, T=T)
 
 
 def trace_eval(trace, save=False, path="", title="Accuracy over time"):
@@ -48,6 +54,13 @@ def ranks_eval(ranks, save=False, path="", title="Density over ranks"):
     else:
         plt.show()
 
+
+trace_eval(
+        trace, 
+        save=False, 
+        path=f"./graphs2/{name}_{env}_ranks.png",
+        title=f"Portion of agents over action rank \nfor {name} in {envName} environment"  
+    )
 
 ranks_eval(ranks)
 #trace_eval(trace)

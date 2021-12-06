@@ -9,9 +9,8 @@ class AgentTypes(Enum):
     OPTIMISTIC = 2
     UCB = 3
     AP = 4
-    SOFT_MAX = 5
+    SOFT_MAX_AP = 5
     SOFT_MAX_Q_VALUES = 6
-    
 
 at = AgentTypes
 
@@ -27,8 +26,8 @@ class Agent():
         self.extra = extra
         self.env = env
 
-        self.algorithm = self.resolve_method()
-        self.Q = np.random.rand(k) * self.qScales # TODO this is probably not correct but the algs perform better
+        self.algorithm = self.resolve_method() 
+        self.Q = np.zeros(k) if method == at.OPTIMISTIC else (np.ones(k) * self.qScales)
 
     def resolve_method(self):
         m = self.method
@@ -45,10 +44,10 @@ class Agent():
             return self.eps_greedy
 
         if m == at.UCB:
-            self.histogram = np.ones(self.k) # TODO is this correct? I think yes
+            self.histogram = 0.00001 * np.ones(self.k) # TODO is this correct? I think yes
             return self.UCB
 
-        if m == at.AP or m == at.SOFT_MAX or m == at.SOFT_MAX_Q_VALUES:
+        if m == at.AP or m == at.SOFT_MAX_AP or m == at.SOFT_MAX_Q_VALUES:
             self.H = np.zeros(self.k) 
             self.Q = np.zeros(self.k)
             self.PI = None
@@ -76,14 +75,14 @@ class Agent():
             Q_adj = self.Q + np.sqrt(np.log(t) / self.histogram)
             return np.argmax(Q_adj)
 
-        if m == at.SOFT_MAX or m == at.AP or m == at.SOFT_MAX_Q_VALUES:
+        if m == at.SOFT_MAX_AP or m == at.AP or m == at.SOFT_MAX_Q_VALUES:
 
             H = self.H
             if m == at.SOFT_MAX_Q_VALUES:
                 H = self.Q
 
             sum_sm = np.sum(np.exp(H))
-            self.PI = np.exp(H) / sum_sm
+            self.PI = np.exp(H) / sum_sm 
 
             deterministic = m == at.AP
             return np.argmax(H) if deterministic else np.random.choice(self.k, p=self.PI)
@@ -91,18 +90,20 @@ class Agent():
 
     def update(self, t):
         self.t = t
-        self.algorithm(t)
+        return self.algorithm(t)
 
     def greedy(self, t):
         action = self.best_action()
         reward = self.env.reward(action)
         self.increment(action, reward, t)
+        return (action, reward)
 
     def UCB(self, t):
         action = self.best_action()
         reward = self.env.reward(action)
         self.histogram[action] += 1
         self.increment(action, reward, t)
+        return (action, reward)
 
     def soft_max(self, t):
         action = self.best_action()
@@ -111,12 +112,14 @@ class Agent():
         mask = np.zeros(self.k, np.bool)
         mask[action] = True
         
-        self.H[mask] = self.H[mask] + self.alpha(t) * (reward - self.Q[mask]) * (1 - self.PI[mask])
-        self.H[~mask] = self.H[~mask] - self.alpha(t) * (reward - self.Q[~mask]) * self.PI[~mask]
+        self.H[mask] = self.H[mask] + 0.1 * (reward - self.Q[mask]) * (1 - self.PI[mask])
+        self.H[~mask] = self.H[~mask] - 0.1 * (reward - self.Q[~mask]) * self.PI[~mask]
 
         self.increment(action, reward, t)
+        return (action, reward)
 
     def eps_greedy(self, t):
         action = self.best_action()
         reward = self.env.reward(action)
         self.increment(action, reward, t)
+        return (action, reward)

@@ -17,10 +17,9 @@ def gains(method, environment, k=10, N=100, T=1000, extra=None):
         correct = 0
         reward = 0 
         for agent in agents:
-            agent.update(t)
-            best_action = agent.best_action()
-            reward += agent.env.reward(best_action)
-            correct += 1 if best_action == agent.env.bestAction() else 0
+            action, r = agent.update(t)
+            reward += r
+            correct += 1 if action == agent.env.bestAction() else 0
 
         rewards.append(reward / len(agents))
         accs.append(correct / len(agents))
