@@ -85,8 +85,8 @@ class Agent():
             if m == at.SOFT_MAX_Q_VALUES:
                 H = self.Q
 
-            sum_sm = np.sum(np.exp(H))
-            self.PI = np.exp(H) / sum_sm 
+            sum_sm = np.sum(np.exp(H * 10))
+            self.PI = np.exp(H * 10) / sum_sm 
 
             deterministic = m == at.AP
             return self.argmax(H) if deterministic else np.random.choice(self.k, p=self.PI)

@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
-method = BT.EPSILON_GREEDY
+method = BT.SOFT_MAX_Q_VALUES
 envName = "Bernoulli"
 k = 10
 N = 500
@@ -12,7 +12,7 @@ T = 500
 
 name = method.name.lower()
 env = envName[0]
-ranks, trace, reward = gym.gains(method, env, k=k, N=N, T=T, extra=1)
+ranks, trace, reward = gym.gains(method, env, k=k, N=N, T=T)
 
 
 def trace_eval(trace, save=False, path="", title="Accuracy over time"):
@@ -55,8 +55,8 @@ def ranks_eval(ranks, save=False, path="", title="Density over ranks"):
         plt.show()
 
 
-ranks_eval(
-        ranks, 
+trace_eval(
+        trace, 
         save=False, 
         path=f"./graphs2/{name}_{env}_ranks.png",
         title=f"Portion of agents over action rank \nfor {name} in {envName} environment"  
