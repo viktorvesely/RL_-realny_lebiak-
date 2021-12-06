@@ -5,6 +5,15 @@ from env import EnvBernoulli, EnvGaussian
 from agent import Agent
 
 def gains(method, environment, k=10, N=100, T=1000, extra=None):
+    """
+    Function thar runs the experiment
+    @param {method}: Enum of the method
+    @param {environment}: char that represents the environment
+    @param {k}: number of arms
+    @param {N}: number of agents
+    @param {T}: end simulation time
+    @param {extra}: extra parameters for a given method
+    """
         
     agents = [Agent(method, k, EnvBernoulli(k) if environment == "B" else EnvGaussian(k), extra=extra) for _ in range(N)]
 
@@ -24,7 +33,7 @@ def gains(method, environment, k=10, N=100, T=1000, extra=None):
         rewards.append(reward / len(agents))
         accs.append(correct / len(agents))
             
-    print()
+    #print()
 
     ranks = []
     for agent in agents:
