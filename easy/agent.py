@@ -18,7 +18,6 @@ class Agent():
 
     def __init__(self, method, k, env, extra=None):
 
-        self.epsilon = None
         self.t = None
         self.qScales = 1
         self.k = k
@@ -27,7 +26,9 @@ class Agent():
         self.env = env
 
         self.algorithm = self.resolve_method() 
-        self.Q = np.zeros(k) if method == at.OPTIMISTIC else (np.ones(k) * self.qScales)
+        #self.Q = np.random.rand(k) * self.qScales
+        self.Q = np.zeros(k) if method != at.OPTIMISTIC else self.Q
+        #self.Q = np.ones(k)
 
     def resolve_method(self):
         m = self.method
@@ -37,10 +38,10 @@ class Agent():
 
         if m == at.OPTIMISTIC:
             self.qScales = self.extra
+            self.Q = np.ones(self.k) * self.qScales
             return self.greedy
 
         if m == at.EPSILON_GREEDY:
-            self.epsilon = self.extra
             return self.eps_greedy
 
         if m == at.UCB:
@@ -55,8 +56,11 @@ class Agent():
         
         return None
 
+    def epsilon(self, t):
+        return 1 / (t ** (1/2)) 
+
     def alpha(self, t):
-        return 1 / t
+        return 1 / (t ** (1/2))
 
     def increment(self, action, reward, t):
         self.Q[action] = self.Q[action] + self.alpha(t) * (reward - self.Q[action])
@@ -66,14 +70,14 @@ class Agent():
         t = self.t
 
         if m == at.GREEDY or m == at.OPTIMISTIC:
-            return np.argmax(self.Q)
+            return self.argmax(self.Q)
 
         if m == at.EPSILON_GREEDY:
-            return np.random.choice(self.k)  if random.random() < self.epsilon else np.argmax(self.Q)
+            return np.random.choice(self.k)  if random.random() < self.epsilon(t) else self.argmax(self.Q)
 
         if m == at.UCB:
             Q_adj = self.Q + np.sqrt(np.log(t) / self.histogram)
-            return np.argmax(Q_adj)
+            return self.argmax(Q_adj)
 
         if m == at.SOFT_MAX_AP or m == at.AP or m == at.SOFT_MAX_Q_VALUES:
 
@@ -85,8 +89,11 @@ class Agent():
             self.PI = np.exp(H) / sum_sm 
 
             deterministic = m == at.AP
-            return np.argmax(H) if deterministic else np.random.choice(self.k, p=self.PI)
+            return self.argmax(H) if deterministic else np.random.choice(self.k, p=self.PI)
         
+    def argmax(self, array):
+        index = np.argwhere(array == np.amax(array))
+        return np.random.choice(np.concatenate(index, axis=0))
 
     def update(self, t):
         self.t = t
