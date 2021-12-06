@@ -3,18 +3,19 @@ import random
 
 from enum import Enum
 
-class BanditTypes(Enum):
+class AgentTypes(Enum):
     GREEDY = 0
     EPSILON_GREEDY = 1
     OPTIMISTIC = 2
     UCB = 3
     AP = 4
     SOFT_MAX = 5
+    SOFT_MAX_Q_VALUES = 6
     
 
-bt = BanditTypes
+at = AgentTypes
 
-class Bandit():
+class Agent():
 
     def __init__(self, method, k, env, extra=None):
 
@@ -27,35 +28,30 @@ class Bandit():
         self.env = env
 
         self.algorithm = self.resolve_method()
-        self.Q = np.random.rand(k) * self.qScales # TODO this is probably not corret but the algs perform better
+        self.Q = np.random.rand(k) * self.qScales # TODO this is probably not correct but the algs perform better
 
     def resolve_method(self):
         m = self.method
 
-        if m == bt.GREEDY:
+        if m == at.GREEDY:
             return self.greedy
 
-        if m == bt.OPTIMISTIC:
+        if m == at.OPTIMISTIC:
             self.qScales = self.extra
             return self.greedy
 
-        if m == bt.EPSILON_GREEDY:
+        if m == at.EPSILON_GREEDY:
             self.epsilon = self.extra
             return self.eps_greedy
 
-        if m == bt.UCB:
+        if m == at.UCB:
             self.histogram = np.ones(self.k) # TODO is this correct? I think yes
             return self.UCB
 
-        if m == bt.AP or m == bt.SOFT_MAX:
+        if m == at.AP or m == at.SOFT_MAX or m == at.SOFT_MAX_Q_VALUES:
             self.H = np.zeros(self.k) 
             self.Q = np.zeros(self.k)
             self.PI = None
-
-        if m == bt.AP:
-            return self.AP
-
-        if m == bt.SOFT_MAX:
             return self.soft_max
         
         return None
@@ -70,22 +66,28 @@ class Bandit():
         m = self.method
         t = self.t
 
-        if m == bt.GREEDY or m == bt.OPTIMISTIC:
+        if m == at.GREEDY or m == at.OPTIMISTIC:
             return np.argmax(self.Q)
 
-        if m == bt.EPSILON_GREEDY:
+        if m == at.EPSILON_GREEDY:
             return np.random.choice(self.k)  if random.random() < self.epsilon else np.argmax(self.Q)
 
-        if m == bt.UCB:
+        if m == at.UCB:
             Q_adj = self.Q + np.sqrt(np.log(t) / self.histogram)
             return np.argmax(Q_adj)
 
-        if m == bt.SOFT_MAX or m == bt.AP:
-            stochastic = m == bt.SOFT_MAX
-            sum_sm = np.sum(np.exp(self.H))
+        if m == at.SOFT_MAX or m == at.AP or m == at.SOFT_MAX_Q_VALUES:
 
-            self.PI = np.exp(self.H) / sum_sm
-            return np.random.choice(self.k, p=self.PI) if stochastic else np.argmax(self.H)
+            H = self.H
+            if m == at.SOFT_MAX_Q_VALUES:
+                H = self.Q
+
+            sum_sm = np.sum(np.exp(H))
+            self.PI = np.exp(H) / sum_sm
+
+            deterministic = m == at.AP
+            return np.argmax(H) if deterministic else np.random.choice(self.k, p=self.PI)
+        
 
     def update(self, t):
         self.t = t
@@ -114,11 +116,7 @@ class Bandit():
 
         self.increment(action, reward, t)
 
-    def AP(self, t):
-        self.soft_max(t)
-
     def eps_greedy(self, t):
-        epsilon = self.extra
         action = self.best_action()
         reward = self.env.reward(action)
         self.increment(action, reward, t)
