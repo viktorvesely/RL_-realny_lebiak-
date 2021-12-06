@@ -51,7 +51,7 @@ class Agent:
             return self.ap
     
     def greedy(self):
-        action = np.argmax(self.Q)
+        action = self.argmax(self.Q)
         reward = self.env.getReward(action)
         return action, reward
     
@@ -61,7 +61,7 @@ class Agent:
         probabilities = np.ones(nActions) * self.epsilon/nActions
 
         # exploitation -- the 1 - e probability is evenly distributed across all the best options
-        best = np.argmax(self.Q)
+        best = self.argmax(self.Q)
         bestprob = (1 - self.epsilon)/best.size
         probabilities[best] += bestprob
 
@@ -79,7 +79,7 @@ class Agent:
         return action, reward
     
     def ucb(self):
-        action = np.argmax(self.Q + self.U)
+        action = self.argmax(self.Q + self.U)
 
         #update uncertainties
         self.Na[action] += 1
@@ -99,6 +99,9 @@ class Agent:
 
         self.pi = self.getSoftmaxDistribution(self.H)
         return action, reward
+
+    def argmax(self, array):
+        return np.random.choice(np.argwhere(array == np.amax(array)))
         
     def getSoftmaxDistribution(self, array):
         exponents = np.exp(array)

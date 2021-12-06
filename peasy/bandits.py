@@ -49,8 +49,3 @@ class Bandit():
         for action in actions:
             expected.append(self.getExpectedValue(action))
         return np.argmax(expected)
-
-
-
-
-

@@ -13,12 +13,12 @@ def simulate(learningMethod: ExplorationMethod, btype: BanditType, N: int, T:int
         bandit = Bandit(btype, k)
         player = Agent(learningMethod, bandit.getPossibleActions(),  bandit)
 
-        
+        bestAction = bandit.getBestAction()
+        if bestAction.size != 1:
+            print("Error, there is more than one optimal action")
+
         for j in range(0, T):
             action, reward = player.makeAction()
-            bestAction = bandit.getBestAction()
-            if bestAction.size != 1:
-                print("Error, there is more than one optimal action")
             resultsActions[i,j] = action == bestAction
             resultsRewards[i,j] = reward
 
@@ -39,12 +39,10 @@ def simulateANDshow(learningMethod: ExplorationMethod, btype: BanditType, N: int
     plot1 = plt.figure(1)
     plt.plot(x, actions, linewidth=0.5)
     plt.title(f"Percentage of optimal actions, {btype.name} distribution, {learningMethod.name}")
-    plt.legend()
 
     plot2 = plt.figure(2)
     plt.plot(x, rewards, linewidth=0.5)
     plt.title(f"Average reward, {btype.name} distribution, {learningMethod.name}")
-    plt.legend()
 
 
 def simulateAll(N: int, T:int, k:int):
