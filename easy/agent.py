@@ -74,7 +74,7 @@ class Agent():
         return None
 
     def epsilon(self, t):
-        return 1 / (t ** (1/2)) 
+        return 1 / (t ** (0.2)) 
 
     def alpha(self, t):
         """
