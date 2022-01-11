@@ -107,11 +107,11 @@ class Drifter(tf.keras.Model):
     def init_actor(self):
         actor = models.Sequential()
 
-        actor.add(layers.Conv2D(16, (3, 3), activation='relu', input_shape=self.state_shape))
+        actor.add(layers.Conv2D(4, (3, 3), activation='relu', input_shape=self.state_shape))
         actor.add(layers.MaxPooling2D((2, 2)))
-        actor.add(layers.Conv2D(32, (3, 3), activation='relu'))
+        actor.add(layers.Conv2D(8, (3, 3), activation='relu'))
         actor.add(layers.MaxPooling2D((2, 2)))
-        actor.add(layers.Conv2D(32, (3, 3), activation='relu'))
+        actor.add(layers.Conv2D(8, (3, 3), activation='relu'))
         actor.add(layers.Flatten())
         actor.add(layers.Dense(32, activation='relu'))
         actor.add(layers.Dense(self.num_actions(), activation='tanh'))
@@ -133,11 +133,11 @@ class Drifter(tf.keras.Model):
     def init_critic(self):
 
         state_input = keras.Input(shape=self.state_shape)
-        state_output = layers.Conv2D(16, (3, 3), activation='relu')(state_input)
+        state_output = layers.Conv2D(4, (3, 3), activation='relu')(state_input)
         state_output = layers.MaxPooling2D((2, 2))(state_input)
-        state_output = layers.Conv2D(32, (3, 3), activation='relu')(state_output)
+        state_output = layers.Conv2D(8, (3, 3), activation='relu')(state_output)
         state_output = layers.MaxPooling2D((2, 2))(state_output)
-        state_output = layers.Conv2D(32, (3, 3), activation='relu')(state_output)
+        state_output = layers.Conv2D(8, (3, 3), activation='relu')(state_output)
         state_output = layers.Flatten()(state_output)
 
         action_input = keras.Input(shape=(self.num_actions()))
@@ -145,8 +145,8 @@ class Drifter(tf.keras.Model):
 
         concat = layers.Concatenate()([state_output, action_out])
 
-        out = layers.Dense(128, activation="relu")(concat)
-        out = layers.Dense(64, activation="relu")(out)
+        out = layers.Dense(64, activation="relu")(concat)
+        out = layers.Dense(32, activation="relu")(out)
         outputs = layers.Dense(1)(out)
 
         model = tf.keras.Model([state_input, action_input], outputs)

@@ -35,7 +35,8 @@ for episode in range(n_episodes):
     episodic_reward = 0
 
     for frame in range(n_frames):
-        env.render()
+        if inspect: 
+            env.render()
         
         action = drifter(state)
         next_state, reward, done, _ = env.step(action)
