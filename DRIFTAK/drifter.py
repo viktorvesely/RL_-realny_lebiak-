@@ -10,7 +10,7 @@ from gaussianNoise import GaussianNoise
 
 class Drifter(tf.keras.Model):
 
-    tau = 0.01
+    tau = 0.4
     max_nosie_std = 1.5
     gamma = 0.98
 
@@ -18,7 +18,7 @@ class Drifter(tf.keras.Model):
     actor_lr = 0.001
 
     stable_noise = True
-    stable_noise_std = 0.1
+    stable_noise_std = 0.3
 
     def __init__(
       self, 
@@ -107,11 +107,29 @@ class Drifter(tf.keras.Model):
     def init_actor(self):
         actor = models.Sequential()
 
-        actor.add(layers.Conv2D(4, (3, 3), activation='relu', input_shape=self.state_shape))
+        actor.add(layers.Conv2D(4, (3, 3), 
+            activation='relu', 
+            input_shape=self.state_shape,
+            kernel_initializer='he_uniform',
+            bias_initializer='zeros'    
+        ))
+
         actor.add(layers.MaxPooling2D((2, 2)))
-        actor.add(layers.Conv2D(8, (3, 3), activation='relu'))
+
+        actor.add(layers.Conv2D(8, (3, 3), 
+            activation='relu',
+            kernel_initializer='he_uniform',
+            bias_initializer='zeros'   
+        ))
+
         actor.add(layers.MaxPooling2D((2, 2)))
-        actor.add(layers.Conv2D(8, (3, 3), activation='relu'))
+
+        actor.add(layers.Conv2D(8, (3, 3),
+            activation='relu',
+            kernel_initializer='he_uniform',
+            bias_initializer='zeros'
+        ))
+
         actor.add(layers.Flatten())
         actor.add(layers.Dense(32, activation='relu'))
         actor.add(layers.Dense(self.num_actions(), activation='tanh'))
@@ -133,11 +151,28 @@ class Drifter(tf.keras.Model):
     def init_critic(self):
 
         state_input = keras.Input(shape=self.state_shape)
-        state_output = layers.Conv2D(4, (3, 3), activation='relu')(state_input)
-        state_output = layers.MaxPooling2D((2, 2))(state_input)
-        state_output = layers.Conv2D(8, (3, 3), activation='relu')(state_output)
+
+        state_output = layers.Conv2D(4, (3, 3),
+            activation='relu',
+            kernel_initializer='he_uniform',
+            bias_initializer='zeros'
+        )(state_input)
+
         state_output = layers.MaxPooling2D((2, 2))(state_output)
-        state_output = layers.Conv2D(8, (3, 3), activation='relu')(state_output)
+
+        state_output = layers.Conv2D(8, (3, 3),
+            activation='relu',
+            kernel_initializer='he_uniform',
+            bias_initializer='zeros'
+        )(state_output)
+
+        state_output = layers.MaxPooling2D((2, 2))(state_output)
+
+        state_output = layers.Conv2D(8, (3, 3), 
+            activation='relu',
+            kernel_initializer='he_uniform',
+            bias_initializer='zeros'
+        )(state_output)
         state_output = layers.Flatten()(state_output)
 
         action_input = keras.Input(shape=(self.num_actions()))
