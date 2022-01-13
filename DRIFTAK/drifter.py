@@ -61,7 +61,7 @@ class Drifter(tf.keras.Model):
                 [next_states, target_actions], training=True
             )
             
-            critic_value_hat = self.critic([states, target_actions], training=True)
+            critic_value_hat = self.critic([states, actions], training=True)
             
             critic_loss = tf.math.reduce_mean(
                 tf.math.square(critic_value - critic_value_hat)
