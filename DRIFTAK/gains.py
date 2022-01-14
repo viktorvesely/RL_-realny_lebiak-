@@ -1,19 +1,18 @@
 import gym
 import numpy as np
-import cv2
-
+from matplotlib import pyplot as plt
 
 from drifter import Drifter
 from experiences import Buffer
 
-n_episodes = 150
-n_frames = 400
+n_episodes = 10
+n_frames = 500
 inspect = True
 experience_buffer_size = 10000
 batch_size = 500
 
-update_every = 120 
-sync_every = 150
+update_every = 90 
+sync_every = 90
 
 env = gym.make('CarRacing-v0')
 buffer = Buffer(
@@ -39,6 +38,8 @@ def create_drifter():
 drifter = create_drifter()
 
 total_frames = 0
+loss = []
+
 
 for episode in range(n_episodes):
     state = env.reset()
@@ -67,7 +68,8 @@ for episode in range(n_episodes):
 
         n_experiences = len(buffer)
         if time_to(total_frames, update_every) and n_experiences >= batch_size:
-            drifter.learn(buffer())
+            actor_loss, critic_loss = drifter.learn(buffer())
+            loss.append([actor_loss, critic_loss])
 
         if time_to(total_frames, sync_every) and n_experiences >= batch_size:
             drifter.sync_targets()
@@ -76,3 +78,12 @@ for episode in range(n_episodes):
     print(f"Episodic reward: {episodic_reward}")
 
 env.close()
+
+loss = np.array(loss).T
+t = np.arange(len(loss[0]))
+plt.plot(t, loss[0], label="actor", color="blue")
+plt.plot(t, loss[1], label="critic", color="green")
+plt.legend()
+
+plt.show()
+

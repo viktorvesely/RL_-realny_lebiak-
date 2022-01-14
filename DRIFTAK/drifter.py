@@ -48,8 +48,7 @@ class Drifter(tf.keras.Model):
         )
         self.t = 1
 
-
-    #@tf.function
+    @tf.function
     def update(
         self, states, actions, rewards, next_states,
     ):
@@ -83,6 +82,8 @@ class Drifter(tf.keras.Model):
         self.actor_optimizer.apply_gradients(
             zip(actor_grad, self.actor.trainable_weights)
         )
+
+        return tf.math.reduce_mean(actor_loss), tf.math.reduce_mean(critic_loss)
 
 
     @tf.function
@@ -145,12 +146,13 @@ class Drifter(tf.keras.Model):
 
         states, actions, rewards, next_states = batch
     
-        self.update(
+        return self.update(
             tf.convert_to_tensor(states),
             tf.convert_to_tensor(actions),
             tf.convert_to_tensor(rewards),
             tf.convert_to_tensor(next_states)
         )
+
 
     def init_critic(self):
 
