@@ -19,7 +19,6 @@ class Buffer:
 
     def __len__(self):
         return self.n_experiences if self.full else self.head
-        
     
     def record(self, state, action, reward, nextState):
 

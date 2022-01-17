@@ -132,8 +132,8 @@ class Drifter(tf.keras.Model):
         ))
 
         actor.add(layers.Flatten())
-        actor.add(layers.Dense(128, activation='tanh'))
-        actor.add(layers.Dense(64, activation='tanh'))
+        actor.add(layers.Dense(128, activation='tanh', kernel_initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=None)))
+        actor.add(layers.Dense(64, activation='tanh', kernel_initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=None)))
         actor.add(layers.Dense(
             self.num_actions(),
             activation='tanh',
@@ -188,7 +188,7 @@ class Drifter(tf.keras.Model):
 
         out = layers.Dense(128, activation="tanh")(concat)
         out = layers.Dense(64, activation="relu")(out)
-        outputs = layers.Dense(1)(out)
+        outputs = layers.Dense(1, activation="linear")(out)
 
         model = tf.keras.Model([state_input, action_input], outputs)
 
