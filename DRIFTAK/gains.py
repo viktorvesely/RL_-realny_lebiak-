@@ -14,8 +14,8 @@ inspect = True
 experience_buffer_size = 10000
 batch_size = 500
 
-update_every = 90 
-sync_every = 90
+update_every = 10
+sync_every = 10
 
 env = gym.make('CarRacing-v0')
 buffer = Buffer(
@@ -61,7 +61,6 @@ for episode in range(n_episodes):
         #mask.showOneResult(state)
         
         action = drifter(state)
-        print(action)
 
         try:
             #next_state, reward, done, _ = env.step(action)

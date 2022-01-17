@@ -194,18 +194,22 @@ class Drifter(tf.keras.Model):
 
         return model
 
+    def Normalizeto01(self, data):
+        return (data + 1)/2
+
     def __call__(self, state, training=True):
         # Convert to batch
         state_batch = tf.expand_dims(tf.convert_to_tensor(state), 0)
 
         # Convert back to one sample
-        actions = tf.squeeze(self.actor(state_batch))
+        actions = tf.squeeze(self.actor(state_batch)).numpy()
 
         noise = self.noise()
 
         boundaries = self.action_space
 
-        actions = tf.clip_by_value(actions, boundaries[0], boundaries[1])
+        #actions = tf.clip_by_value(actions, boundaries[0], boundaries[1])
+        actions[1] = self.Normalizeto01(actions[1])
 
         if not Drifter.stable_noise:
             noise *= 1 / self.t
@@ -213,7 +217,8 @@ class Drifter(tf.keras.Model):
         if training: 
             actions += noise
 
-        actions = tf.clip_by_value(actions, boundaries[0], boundaries[1])
+        #actions = tf.clip_by_value(actions, boundaries[0], boundaries[1])
+        actions[1] = self.Normalizeto01(actions[1])
 
 
         return actions
