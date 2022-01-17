@@ -186,8 +186,8 @@ class Drifter(tf.keras.Model):
 
         concat = layers.Concatenate()([state_output, action_out])
 
-        out = layers.Dense(128, activation="tanh")(concat)
-        out = layers.Dense(64, activation="relu")(out)
+        out = layers.Dense(128, activation="relu")(concat)
+        out = layers.Dense(64, activation="linear")(out)
         outputs = layers.Dense(1, activation="linear")(out)
 
         model = tf.keras.Model([state_input, action_input], outputs)
