@@ -93,7 +93,7 @@ class Drifter(tf.keras.Model):
 
 
     def num_actions(self):
-        return self.action_space.shape[0]
+        return self.action_space.T.shape[0]
 
     def sync_actor(self):
         self.update_target(self.actor_target.variables, self.actor.variables, Drifter.tau)
@@ -203,7 +203,7 @@ class Drifter(tf.keras.Model):
 
         noise = self.noise()
 
-        boundaries = self.action_space.T
+        boundaries = self.action_space
 
         actions = tf.clip_by_value(actions, boundaries[0], boundaries[1])
 

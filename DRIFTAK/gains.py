@@ -10,7 +10,7 @@ from frame_tampering import StateMask
 
 n_episodes = 10
 n_frames = 500
-inspect = False
+inspect = True
 experience_buffer_size = 10000
 batch_size = 500
 
@@ -34,13 +34,12 @@ def create_drifter():
     
     action_space = np.array([[-1.0, 0.0], [1.0, 1.0]])
     # action_space = np.array([lows, highs])
-    action_space = action_space.T
     
     return Drifter(action_space, env.observation_space.shape)
 
 drifter = create_drifter()
 
-mask = StateMask(96, 96, True)
+mask = StateMask(96, 96, save = False)
 
 total_frames = 0
 loss = []
@@ -58,10 +57,11 @@ for episode in range(n_episodes):
         if inspect:
             env.render()
         
-        state = mask.applyMask(state, episode, frame)
+        #state = mask.applyMask(state, episode, frame)
         #mask.showOneResult(state)
         
-        action = drifter(state).numpy()
+        action = drifter(state)
+        print(action)
 
         try:
             #next_state, reward, done, _ = env.step(action)
