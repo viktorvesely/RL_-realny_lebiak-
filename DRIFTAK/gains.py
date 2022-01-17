@@ -1,13 +1,16 @@
 import gym
 import numpy as np
 from matplotlib import pyplot as plt
+import sys 
+import os.path
 
 from drifter import Drifter
 from experiences import Buffer
+from frame_tampering import StateMask
 
 n_episodes = 10
 n_frames = 500
-inspect = True
+inspect = False
 experience_buffer_size = 10000
 batch_size = 500
 
@@ -37,6 +40,8 @@ def create_drifter():
 
 drifter = create_drifter()
 
+mask = StateMask(96, 96, True)
+
 total_frames = 0
 loss = []
 
@@ -53,6 +58,9 @@ for episode in range(n_episodes):
         if inspect:
             env.render()
         
+        state = mask.applyMask(state, episode, frame)
+        #mask.showOneResult(state)
+        
         action = drifter(state).numpy()
 
         try:
@@ -60,7 +68,7 @@ for episode in range(n_episodes):
             next_state, reward, done, _ = env.step(np.append(action, 0))
 
         except TypeError:
-            print("I am the imfamous error : )")
+            print(f"I am the imfamous error : )\n caused by action {np.append(action, 0)}")
 
         buffer.record(state, action, reward, next_state)
 
@@ -74,7 +82,7 @@ for episode in range(n_episodes):
         if time_to(total_frames, sync_every) and n_experiences >= batch_size:
             drifter.sync_targets()
         state = next_state
-        
+    
     print(f"Episodic reward: {episodic_reward}")
 
 env.close()
