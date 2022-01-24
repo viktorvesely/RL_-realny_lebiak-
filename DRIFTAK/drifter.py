@@ -46,7 +46,9 @@ class Drifter(tf.keras.Model):
             Drifter.stable_noise_std if Drifter.stable_noise else Drifter.max_nosie_std,
             self.num_actions()
         )
-        self.t = 1
+        self.t = 0
+        
+        self.__at_least_one_training = False 
 
     @tf.function
     def update(
@@ -62,7 +64,7 @@ class Drifter(tf.keras.Model):
             
             critic_value_hat = self.critic([states, actions], training=True)
             
-            critic_loss = -tf.math.reduce_mean(
+            critic_loss = tf.math.reduce_mean(
                 tf.math.square(critic_value - critic_value_hat)
             )
 
@@ -76,7 +78,7 @@ class Drifter(tf.keras.Model):
             critic_value = self.critic([states, actions_hat], training=True)
             # Used `-value` as we want to maximize the value given
             # by the critic for our actions
-            actor_loss = tf.math.reduce_mean(critic_value)
+            actor_loss = -tf.math.reduce_mean(critic_value)
 
         actor_grad = tape.gradient(actor_loss, self.actor.trainable_weights)
         self.actor_optimizer.apply_gradients(
@@ -145,6 +147,8 @@ class Drifter(tf.keras.Model):
     def learn(self, batch):
 
         states, actions, rewards, next_states = batch
+
+        self.__at_least_one_training = True
     
         return self.update(
             tf.convert_to_tensor(states),
@@ -208,8 +212,8 @@ class Drifter(tf.keras.Model):
 
         boundaries = self.action_space
 
-        #actions = tf.clip_by_value(actions, boundaries[0], boundaries[1])
-        actions[1] = self.Normalizeto01(actions[1])
+        actions = tf.clip_by_value(actions, boundaries[0], boundaries[1])
+        #actions[1] = self.Normalizeto01(actions[1])
 
         if not Drifter.stable_noise:
             noise *= 1 / self.t
@@ -217,8 +221,8 @@ class Drifter(tf.keras.Model):
         if training: 
             actions += noise
 
-        #actions = tf.clip_by_value(actions, boundaries[0], boundaries[1])
-        actions[1] = self.Normalizeto01(actions[1])
+        actions = tf.clip_by_value(actions, boundaries[0], boundaries[1])
+        #actions[1] = self.Normalizeto01(actions[1])
 
 
         return actions

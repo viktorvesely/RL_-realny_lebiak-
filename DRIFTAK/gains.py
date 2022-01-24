@@ -8,14 +8,14 @@ from drifter import Drifter
 from experiences import Buffer
 from frame_tampering import StateMask
 
-n_episodes = 10
-n_frames = 500
+n_episodes = 3
+n_frames = 800
 inspect = True
 experience_buffer_size = 10000
 batch_size = 500
 
-update_every = 10
-sync_every = 10
+update_every = 40
+sync_every = 40
 
 env = gym.make('CarRacing-v0')
 buffer = Buffer(
@@ -67,7 +67,7 @@ for episode in range(n_episodes):
             next_state, reward, done, _ = env.step(np.append(action, 0))
 
         except TypeError:
-            print(f"I am the imfamous error : )\n caused by action {np.append(action, 0)}")
+            print("I am the imfamous error : )\n caused by the breaking action")
 
         buffer.record(state, action, reward, next_state)
 
