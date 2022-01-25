@@ -10,7 +10,7 @@ from gaussianNoise import GaussianNoise
 
 class Drifter(tf.keras.Model):
 
-    tau = 0.9
+    tau = 0.1
     max_nosie_std = 1.5
     gamma = 0.98
 
@@ -110,8 +110,11 @@ class Drifter(tf.keras.Model):
     def init_actor(self):
         actor = models.Sequential()
 
-        actor.add(layers.Conv2D(8, (3, 3), 
-            activation='tanh', 
+        actor.add(layers.Conv2D(
+            filters=6, 
+            kernel_size=(7, 7),
+            strides=3, 
+            activation='relu', 
             input_shape=self.state_shape,
             kernel_initializer='he_uniform',
             bias_initializer='zeros'    
@@ -119,22 +122,18 @@ class Drifter(tf.keras.Model):
 
         actor.add(layers.MaxPooling2D((2, 2)))
 
-        actor.add(layers.Conv2D(16, (3, 3), 
-            activation='tanh',
+        actor.add(layers.Conv2D(
+            filters=12, 
+            kernel_size=(4, 4),
+            activation='relu',
             kernel_initializer='he_uniform',
             bias_initializer='zeros'   
         ))
 
         actor.add(layers.MaxPooling2D((2, 2)))
 
-        actor.add(layers.Conv2D(16, (3, 3),
-            activation='tanh',
-            kernel_initializer='he_uniform',
-            bias_initializer='zeros'
-        ))
-
         actor.add(layers.Flatten())
-        actor.add(layers.Dense(128, activation='tanh', kernel_initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=None)))
+        actor.add(layers.Dense(128, activation='relu', kernel_initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=None)))
         actor.add(layers.Dense(64, activation='tanh', kernel_initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=None)))
         actor.add(layers.Dense(
             self.num_actions(),
@@ -162,27 +161,26 @@ class Drifter(tf.keras.Model):
 
         state_input = keras.Input(shape=self.state_shape)
 
-        state_output = layers.Conv2D(8, (3, 3),
-            activation='tanh',
+        state_output = layers.Conv2D(
+            filters=6, 
+            kernel_size=(7, 7),
+            strides=3, 
+            activation='relu',
             kernel_initializer='he_uniform',
             bias_initializer='zeros'
         )(state_input)
 
         state_output = layers.MaxPooling2D((2, 2))(state_output)
 
-        state_output = layers.Conv2D(16, (3, 3),
-            activation='tanh',
+        state_output = layers.Conv2D(
+            filters=12, 
+            kernel_size=(4, 4),
+            activation='relu',
             kernel_initializer='he_uniform',
             bias_initializer='zeros'
         )(state_output)
 
         state_output = layers.MaxPooling2D((2, 2))(state_output)
-
-        state_output = layers.Conv2D(16, (3, 3), 
-            activation='tanh',
-            kernel_initializer='he_uniform',
-            bias_initializer='zeros'
-        )(state_output)
         state_output = layers.Flatten()(state_output)
 
         action_input = keras.Input(shape=(self.num_actions()))
