@@ -10,15 +10,15 @@ from gaussianNoise import GaussianNoise
 
 class Drifter(tf.keras.Model):
 
-    tau = 0.9
+    tau = 0.1
     max_nosie_std = 1.5
     gamma = 0.98
 
-    critic_lr = 0.002
-    actor_lr = 0.001
+    critic_lr = 0.004
+    actor_lr = 0.002
 
     stable_noise = True
-    stable_noise_std = 0.2
+    stable_noise_std = 0.15
 
     def __init__(
       self, 
@@ -109,37 +109,14 @@ class Drifter(tf.keras.Model):
 
     def init_actor(self):
         actor = models.Sequential()
-
-        actor.add(layers.Conv2D(8, (3, 3), 
-            activation='tanh', 
-            input_shape=self.state_shape,
-            kernel_initializer='he_uniform',
-            bias_initializer='zeros'    
-        ))
-
-        actor.add(layers.MaxPooling2D((2, 2)))
-
-        actor.add(layers.Conv2D(16, (3, 3), 
-            activation='tanh',
-            kernel_initializer='he_uniform',
-            bias_initializer='zeros'   
-        ))
-
-        actor.add(layers.MaxPooling2D((2, 2)))
-
-        actor.add(layers.Conv2D(16, (3, 3),
-            activation='tanh',
-            kernel_initializer='he_uniform',
-            bias_initializer='zeros'
-        ))
-
-        actor.add(layers.Flatten())
-        actor.add(layers.Dense(128, activation='tanh', kernel_initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=None)))
-        actor.add(layers.Dense(64, activation='tanh', kernel_initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=None)))
+        actor.add(layers.InputLayer(input_shape=self.state_shape))
+        actor.add(layers.Dense(128, activation='relu', kernel_initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=None)))
+        actor.add(layers.Dense(64, activation='relu', kernel_initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=None)))
+        actor.add(layers.Dense(32, activation='relu', kernel_initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=None)))
         actor.add(layers.Dense(
             self.num_actions(),
             activation='tanh',
-            bias_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=0.08, seed=None)))
+            bias_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=0.008, seed=None)))
 
         return actor
         
@@ -162,31 +139,22 @@ class Drifter(tf.keras.Model):
 
         state_input = keras.Input(shape=self.state_shape)
 
-        state_output = layers.Conv2D(8, (3, 3),
-            activation='tanh',
-            kernel_initializer='he_uniform',
-            bias_initializer='zeros'
+        state_output = layers.Dense(128,
+            activation='relu',
         )(state_input)
 
-        state_output = layers.MaxPooling2D((2, 2))(state_output)
-
-        state_output = layers.Conv2D(16, (3, 3),
-            activation='tanh',
-            kernel_initializer='he_uniform',
-            bias_initializer='zeros'
+        state_output = layers.Dense(64,
+            activation='relu',
         )(state_output)
 
-        state_output = layers.MaxPooling2D((2, 2))(state_output)
-
-        state_output = layers.Conv2D(16, (3, 3), 
-            activation='tanh',
-            kernel_initializer='he_uniform',
-            bias_initializer='zeros'
+        state_output = layers.Dense(32,
+            activation='relu',
         )(state_output)
-        state_output = layers.Flatten()(state_output)
+
 
         action_input = keras.Input(shape=(self.num_actions()))
-        action_out = layers.Dense(128, activation="tanh")(action_input)
+        action_out = layers.Dense(128, activation="relu")(action_input)
+        action_out = layers.Dense(64, activation="relu")(action_out)
 
         concat = layers.Concatenate()([state_output, action_out])
 
@@ -200,6 +168,7 @@ class Drifter(tf.keras.Model):
 
     def Normalizeto01(self, data):
         return (data + 1)/2
+        
 
     def __call__(self, state, training=True):
         # Convert to batch
@@ -212,7 +181,7 @@ class Drifter(tf.keras.Model):
 
         boundaries = self.action_space
 
-        actions = tf.clip_by_value(actions, boundaries[0], boundaries[1])
+        actions = np.clip(actions, boundaries[0], boundaries[1])
         #actions[1] = self.Normalizeto01(actions[1])
 
         if not Drifter.stable_noise:
@@ -220,9 +189,14 @@ class Drifter(tf.keras.Model):
 
         if training: 
             actions += noise
-
-        actions = tf.clip_by_value(actions, boundaries[0], boundaries[1])
-        #actions[1] = self.Normalizeto01(actions[1])
+            actions = np.clip(actions, boundaries[0], boundaries[1])
+            #actions[1] = self.Normalizeto01(actions[1])
 
 
         return actions
+
+    def load_for_exploitation(self):
+        self.actor.load_weights("./brains/weights")
+
+    def save_for_exploitation(self):
+        self.actor.save_weights("./brains/weights")

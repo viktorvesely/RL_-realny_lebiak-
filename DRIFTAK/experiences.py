@@ -8,11 +8,16 @@ class Buffer:
 
         self.head = 0
         self.n_experiences = n_experiences
+
+        # I am sorry for this code, but this is how you concatenate two tuples
+        experience_shape = (n_experiences,)
+        state_buffer_shape = sum((experience_shape, state_shape), ())
+
         self.experiences = {
-            "state": np.zeros((n_experiences, state_shape[0], state_shape[1], state_shape[2]), dtype="float32"),
+            "state": np.zeros(state_buffer_shape, dtype="float32"),
             "action": np.zeros((n_experiences, num_actions), dtype="float32"),
             "reward": np.zeros(n_experiences, dtype="float32"),
-            "next_state": np.zeros((n_experiences, state_shape[0], state_shape[1], state_shape[2]), dtype="float32")
+            "next_state": np.zeros(state_buffer_shape, dtype="float32")
         }
         self.batch_size = batch_size
         self.full = False
