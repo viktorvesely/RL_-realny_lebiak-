@@ -14,8 +14,8 @@ inspect = True
 experience_buffer_size = 10000
 batch_size = 500
 
-update_every = 10
-sync_every = 10
+update_every = 50
+sync_every = 50
 
 env = gym.make('CarRacing-v0')
 buffer = Buffer(
@@ -68,7 +68,8 @@ for episode in range(n_episodes):
 
         except TypeError:
             print(f"I am the imfamous error : )\n caused by action {np.append(action, 0)}")
-
+        
+        #print(action)
         buffer.record(state, action, reward, next_state)
 
         episodic_reward += reward

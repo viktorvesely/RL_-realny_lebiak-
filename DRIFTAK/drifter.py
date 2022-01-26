@@ -89,7 +89,8 @@ class Drifter(tf.keras.Model):
     @tf.function
     def update_target(self, target_weights, weights, tau):
         for (wt, w) in zip(target_weights, weights):
-            wt.assign(w * tau + wt * (1 - tau))
+            #wt.assign(w * tau + wt * (1 - tau))
+            wt.assign(wt*tau + w*(1 - tau))
 
 
     def num_actions(self):
