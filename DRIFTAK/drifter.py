@@ -110,9 +110,9 @@ class Drifter(tf.keras.Model):
     def init_actor(self):
         actor = models.Sequential()
         actor.add(layers.InputLayer(input_shape=self.state_shape))
-        actor.add(layers.Dense(128, activation='relu', kernel_initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=None)))
-        actor.add(layers.Dense(64, activation='relu', kernel_initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=None)))
-        actor.add(layers.Dense(32, activation='relu', kernel_initializer=tf.keras.initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=None)))
+        actor.add(layers.Dense(128, activation='relu'))
+        actor.add(layers.Dense(64, activation='relu'))
+        actor.add(layers.Dense(32, activation='relu'))
         actor.add(layers.Dense(
             self.num_actions(),
             activation='tanh',

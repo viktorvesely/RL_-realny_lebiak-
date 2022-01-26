@@ -5,11 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "DRIFTAK",
+            "name": "DRIFTAK-LEARN",
             "type": "python",
             "request": "launch",
             "program": "./DRIFTAK/gains.py",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "args": ["learn"]
+        },
+        {
+            "name": "DRIFTAK-EXPLOIT",
+            "type": "python",
+            "request": "launch",
+            "program": "./DRIFTAK/gains.py",
+            "console": "integratedTerminal",
+            "args": ["exploit"]
         }
     ]
 }
