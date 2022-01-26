@@ -8,10 +8,10 @@ from drifter import Drifter
 from experiences import Buffer
 from frame_tampering import StateMask
 
-n_episodes = 10
-n_frames = 500
-inspect = True
-experience_buffer_size = 10000
+n_episodes = 100
+n_frames = 700
+inspect = False
+experience_buffer_size = 5000
 batch_size = 500
 
 update_every = 50
@@ -77,7 +77,7 @@ for episode in range(n_episodes):
         n_experiences = len(buffer)
         if time_to(total_frames, update_every) and n_experiences >= batch_size:
             actor_loss, critic_loss = drifter.learn(buffer())
-            loss.append([actor_loss, critic_loss])
+            #loss.append([actor_loss, critic_loss])
 
         if time_to(total_frames, sync_every) and n_experiences >= batch_size:
             drifter.sync_targets()
@@ -87,11 +87,11 @@ for episode in range(n_episodes):
 
 env.close()
 
-loss = np.array(loss).T
-t = np.arange(len(loss[0]))
-plt.plot(t, loss[0], label="actor", color="blue")
-plt.plot(t, loss[1], label="critic", color="green")
-plt.legend()
+# loss = np.array(loss).T
+# t = np.arange(len(loss[0]))
+# plt.plot(t, loss[0], label="actor", color="blue")
+# plt.plot(t, loss[1], label="critic", color="green")
+# plt.legend()
 
-plt.show()
+# plt.show()
 
