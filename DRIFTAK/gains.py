@@ -6,8 +6,9 @@ import os.path
 
 from drifter import Drifter
 from experiences import Buffer
+from detective import Detective
 
-n_episodes = 500
+n_episodes = 50
 n_frames = 800
 inspect = False
 experience_buffer_size = 10_000
@@ -61,20 +62,26 @@ def learn():
 
         
             next_state, reward, done, _ = env.step(action)
+            
             buffer.record(state, action, reward, next_state)
+            detective.on_tick(state, action, reward, next_state)
 
             episodic_reward += reward
 
             n_experiences = len(buffer)
             if time_to(total_frames, update_every) and n_experiences >= batch_size:
                 actor_loss, critic_loss = drifter.learn(buffer())
+                detective.on_train(actor_loss, critic_loss)
                 #loss.append([actor_loss, critic_loss])
+                
 
             if time_to(total_frames, sync_every) and n_experiences >= batch_size:
                 drifter.sync_targets()
+                detective.on_sync()
             state = next_state
         
         print(f"Episodic reward: {episodic_reward}")
+        detective.on_episode()
 
     drifter.save_for_exploitation()
     env.close()
@@ -91,12 +98,15 @@ def exploit():
 
             action = drifter(state, training=False)
             next_state, reward, done, _ = env.step(action)
+            detective.on_tick(state, action, reward, next_state)
 
             if done:
-                print("Task finished")
+                print("Episode end")
                 break
 
             state = next_state
+        
+        detective.on_episode()
 
 
 if __name__ == "__main__":
@@ -104,18 +114,14 @@ if __name__ == "__main__":
 
     if mode == "learn":
         print("[LEARNING]")
+        detective = Detective(drifter, True)
         learn()
+        detective.on_end()
     elif mode == "exploit":
         print("[EXPLOITING]")
-        exploit()   
+        detective = Detective(drifter, False)
+        exploit()
+        detective.on_end()
     else:
         print(f"'{mode}' is not correct mode of execution. Accapted values: 'learn' or 'exploit'")    
-
-# loss = np.array(loss).T
-# t = np.arange(len(loss[0]))
-# plt.plot(t, loss[0], label="actor", color="blue")
-# plt.plot(t, loss[1], label="critic", color="green")
-# plt.legend()
-
-# plt.show()
 
