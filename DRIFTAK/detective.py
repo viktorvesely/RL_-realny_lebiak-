@@ -1,9 +1,9 @@
 import numpy as np
 
-loss_every = 400
+loss_every = 2000
 weights_every = 400
 
-debug_weights = True
+debug_weights = False
 
 class Detective:
 
@@ -28,38 +28,24 @@ class Detective:
         if self.train_n % loss_every == 0:
             self.loss.append([actor_loss, critic_loss])
         
-        if debug_weights: 
+        # if debug_weights: 
 
-            if self.train_n % weights_every == 0:
-                aws = self.model.actor.get_weights()
-                cws = self.model.critic.get_weights()
+        #     if self.train_n % weights_every == 0:
+        #         aws = self.model.actor.get_weights()
+        #         cws = self.model.critic.get_weights()
                 
-                aw = [aws[0][1][4], aws[0][1][93], aws[4][42][15], aws[4][8][30], aws[6][2][0], aws[6][16][0]]
-                cw = [cws[2][0][30], cws[2][1][3], cws[4][0][18], cws[4][0][5], cws[10][56][10], cws[10][78][32]]
+        #         aw = [aws[0][1][4], aws[0][1][93], aws[4][42][15], aws[4][8][30], aws[6][2][0], aws[6][16][0]]
+        #         cw = [cws[2][0][30], cws[2][1][3], cws[4][0][18], cws[4][0][5], cws[10][56][10], cws[10][78][32]]
 
-                self.aws.append(aw)
-                self.cws.append(cw)
+        #         self.aws.append(aw)
+        #         self.cws.append(cw)
 
         self.train_n += 1
 
-    def on_sync(self):
-
-        if debug_weights:
-
-            if (self.train_n - 1) % weights_every == 0:
-                aws = self.model.actor_target.get_weights()
-                cws = self.model.critic_target.get_weights()
-
-                aw = [aws[0][1][4], aws[0][1][93], aws[4][42][15], aws[4][8][30], aws[6][2][0], aws[6][16][0]]
-                cw = [cws[2][0][30], cws[2][1][3], cws[4][0][18], cws[4][0][5], cws[10][56][10], cws[10][78][32]]
-
-                self.taws.append(aw)
-                self.tcws.append(cw)
 
     def on_episode(self):
         self.rewards.append(self.cummulativeReward)
         self.cummulativeReward = 0
-        print(f"Epsilon {self.model.get_epsilon()}")
 
     def on_tick(self, state, action, reward, next_state):
         if self.training:

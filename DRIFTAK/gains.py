@@ -8,14 +8,12 @@ from drifter import Drifter
 from experiences import Buffer
 from detective import Detective
 
-n_episodes = 1000
-n_frames = 700
+n_episodes = 400
+n_frames = 1500
 inspect = False
-experience_buffer_size = 100_000
-batch_size = 512
+experience_buffer_size = 200_000
+batch_size = 128
 
-update_every = 1
-sync_every = 1
 
 env = gym.make('LunarLanderContinuous-v2')
 buffer = Buffer(
@@ -55,10 +53,7 @@ def learn():
             if inspect:
                 env.render()
             
-            #state = mask.applyMask(state, episode, frame)
-            #mask.showOneResult(state)
-            
-            action = drifter(state)
+            action = drifter(state, training=True)
         
             next_state, reward, done, _ = env.step(action)
 
@@ -71,25 +66,22 @@ def learn():
             episodic_reward += reward
 
             n_experiences = len(buffer)
-            if time_to(total_frames, update_every) and n_experiences >= batch_size:
-                actor_loss, critic_loss = drifter.learn(buffer())
-                detective.on_train(actor_loss, critic_loss)
-                #loss.append([actor_loss, critic_loss])
-                
-
-            if time_to(total_frames, sync_every) and n_experiences >= batch_size:
+            if n_experiences >= batch_size:
+                critic_loss, actor_loss = drifter.learn(buffer())
                 drifter.sync_targets()
-                detective.on_sync()
+                detective.on_train(actor_loss, critic_loss)
+        
             state = next_state
         
         print(f"Episodic reward: {episodic_reward}")
         detective.on_episode()
+        drifter.on_episode()
 
-    drifter.save_for_exploitation()
+    drifter.save_model()
     env.close()
 
 def exploit():
-    drifter.load_for_exploitation()
+    drifter.load_model()
 
     while True:
         state = env.reset()
@@ -109,6 +101,7 @@ def exploit():
             state = next_state
         
         detective.on_episode()
+        drifter.on_episode()
 
 
 if __name__ == "__main__":

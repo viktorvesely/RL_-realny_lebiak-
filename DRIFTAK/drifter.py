@@ -1,227 +1,125 @@
+
+import torch
+from torch.optim import Adam
+import torch.nn.functional as F
 import numpy as np
-import tensorflow as tf
-from random import random
-from tensorflow.keras import layers, models
-from tensorflow import keras
-from typing import Any, List, Sequence, Tuple
-import math
 
+from networks import Actor, Critic
+from noise import OrnsteinUhlenbeckActionNoise
 
-from gaussianNoise import GaussianNoise
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+class Drifter:
+    
+    tau = 0.001
+    gamma = 0.99
 
-class Drifter(tf.keras.Model):
+    noise_stddev = 0.2
 
-    tau = 0.0001
-    max_nosie_std = 1.5
-    gamma = 0.98
-
-    critic_lr = 0.004
-    actor_lr = 0.002
-
-    epsilon_noise = True
-    epsilon = 1
-    epsilon_decay = 0.0006
-    epsilon_min = 0.08
-    epsilon_noise_std = 0.9
-
-    def __init__(
-      self, 
-      action_space: Tuple,
-      state_shape: Tuple
-      ):
-        """Initialize."""
-        super().__init__()
+    def __init__(self, action_space, state_shape):
 
         self.action_space = action_space
         self.state_shape = state_shape
-        self.actor = self.init_actor()
-        self.critic = self.init_critic()
+        self.action_lows = torch.Tensor(action_space[0]).to(device)
+        self.action_highs = torch.Tensor(action_space[1]).to(device)
 
-        self.actor_target = self.init_actor()
-        self.critic_target = self.init_critic()
+        self.critic = Critic(self.state_shape, self.action_space).to(device)
+        self.actor = Actor(self.state_shape, self.action_space).to(device)
 
-        self.sync_actor()
-        self.sync_critic()
+        self.critic_target = Critic(self.state_shape, self.action_space).to(device)
+        self.actor_target = Actor(self.state_shape, self.action_space).to(device)
 
-        self.critic_optimizer = tf.keras.optimizers.Adam(Drifter.critic_lr)
-        self.actor_optimizer = tf.keras.optimizers.Adam(Drifter.actor_lr)
+        self.hard_update(self.actor_target, self.actor)
+        self.hard_update(self.critic_target, self.critic)
 
-        self.actor.compile(optimizer=self.actor_optimizer, loss="mse")
-        self.critic.compile(optimizer=self.critic_optimizer, loss="mse")
+        self.ou_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(self.num_actions()),
+                                            sigma=float(Drifter.noise_stddev) * np.ones(self.num_actions()))
 
-        self.noise = GaussianNoise(
-            Drifter.epsilon_noise_std if Drifter.epsilon_noise else Drifter.max_nosie_std,
-            self.num_actions()
-        )
-        self.t = 0
-        
-        self.__at_least_one_training = False 
-
-    @tf.function
-    def update(
-        self, states, actions, rewards, next_states,
-    ):
-        
-        with tf.GradientTape() as tape:
-            target_actions = self.actor_target(next_states, training=True)
-            
-            critic_value = rewards + Drifter.gamma * self.critic_target(
-                [next_states, target_actions], training=True
-            )
-            
-            critic_value_hat = self.critic([states, actions], training=True)
-            
-            critic_loss = tf.math.reduce_mean(
-                tf.math.square(critic_value - critic_value_hat)
-            )
-
-        critic_grad = tape.gradient(critic_loss, self.critic.trainable_variables)
-        self.critic_optimizer.apply_gradients(
-            zip(critic_grad, self.critic.trainable_variables)
-        )
-
-        with tf.GradientTape() as tape:
-            actions_hat = self.actor(states, training=True)
-            critic_value = self.critic([states, actions_hat])
-            # Used `-value` as we want to maximize the value given
-            # by the critic for our actions
-            actor_loss = -tf.math.reduce_mean(critic_value)
-
-        actor_grad = tape.gradient(actor_loss, self.actor.trainable_variables)
-        self.actor_optimizer.apply_gradients(
-            zip(actor_grad, self.actor.trainable_variables)
-        )
-
-        return tf.math.reduce_mean(actor_loss), tf.math.reduce_mean(critic_loss)
+        self.actor_optimizer = Adam(self.actor.parameters(), lr=1e-4) 
+        self.critic_optimizer = Adam(self.critic.parameters(), lr=1e-3, weight_decay=1e-2) 
 
 
-    @tf.function
-    def update_target(self, target_weights, weights, tau):
-        for (wt, w) in zip(target_weights, weights):
-            wt.assign(w * tau + wt * (1 - tau))
+    def soft_update(self, target, source, tau):
+        for wt, w in zip(target.parameters(), source.parameters()):
+            wt.data.copy_(w.data * tau +  wt.data * (1.0 - tau))
 
+    def hard_update(self, target, source):
+        for wt, w in zip(target.parameters(), source.parameters()):
+            wt.data.copy_(w.data)
+
+    def sync_targets(self):
+        self.soft_update(self.critic_target, self.critic, Drifter.tau)
+        self.soft_update(self.actor_target, self.actor, Drifter.tau)
 
     def num_actions(self):
         return self.action_space.T.shape[0]
 
-    def sync_actor(self):
-        self.update_target(self.actor_target.variables, self.actor.variables, Drifter.tau)
+    def on_episode(self):
+        self.ou_noise.reset()
 
-    def sync_critic(self):
-        self.update_target(self.critic_target.variables, self.critic.variables, Drifter.tau)
-        
-    def sync_targets(self):
-        self.sync_critic()
-        self.sync_actor()
+    def __call__(self, state, training=True):
 
-    def init_actor(self):
-        actor = models.Sequential()
-        actor.add(layers.InputLayer(input_shape=self.state_shape))
-        actor.add(layers.Dense(128, activation='relu'))
-        actor.add(layers.Dense(64, activation='relu'))
-        actor.add(layers.Dense(32, activation='relu'))
-        actor.add(layers.Dense(
-            self.num_actions(),
-            activation='tanh'))
+        x = torch.Tensor([state]).to(device)
 
-        return actor
+        self.actor.eval() 
+        action = self.actor(x)
+        self.actor.train()  # Sets the actor in training mode
+        action = action.data
+
+        if training:
+            noise = torch.Tensor(self.ou_noise.noise()).to(device)
+            action += noise
+
+        action = action.clamp(self.action_lows, self.action_highs)
+
+        return np.squeeze(action.cpu().numpy())
+    
+    def update(self, states, actions, rewards, next_states):
+
+        next_actions = self.actor_target(next_states)
+        # TODO what exactly is detach
+        Q_target_next = self.critic_target(next_states, next_actions.detach())
+
+        rewards = rewards.unsqueeze(-1)
+        td_target = rewards + Drifter.gamma * Q_target_next
+
+        # Critic update step
+        self.critic_optimizer.zero_grad()
+        Q_hat = self.critic(states, actions)
+        value_loss = F.mse_loss(Q_hat, td_target.detach())
+        value_loss.backward()
+        self.critic_optimizer.step()
+
+        self.actor_optimizer.zero_grad()
+        policy_loss = -self.critic(states, self.actor(states))
+        policy_loss = policy_loss.mean()
+        policy_loss.backward()
+        self.actor_optimizer.step()
+
+        return value_loss.item(), policy_loss.item()
+
         
 
     def learn(self, batch):
 
         states, actions, rewards, next_states = batch
-        self.t += 1
-
-        self.__at_least_one_training = True
     
         return self.update(
-            tf.convert_to_tensor(states),
-            tf.convert_to_tensor(actions),
-            tf.convert_to_tensor(rewards),
-            tf.convert_to_tensor(next_states)
+            torch.Tensor(states).to(device),
+            torch.Tensor(actions).to(device),
+            torch.Tensor(rewards).to(device),
+            torch.Tensor(next_states).to(device)
         )
 
-
-    def init_critic(self):
-
-        state_input = keras.Input(shape=self.state_shape)
-
-        state_output = layers.Dense(64,
-            activation='relu',
-            #kernel_initializer=tf.keras.initializers.Zeros()
-        )(state_input)
-
-        state_output = layers.Dense(32,
-            activation='relu',
-            #kernel_initializer=tf.keras.initializers.Zeros()
-        )(state_output)
+    def set_eval(self):
+        self.actor.eval()
+        self.critic.eval()
+        self.actor_target.eval()
+        self.critic_target.eval()
 
 
-        action_input = keras.Input(shape=(self.num_actions()))
-        action_out = layers.Dense(64, 
-            activation="relu",
-            #kernel_initializer=tf.keras.initializers.Zeros()
-        )(action_input)
-        action_out = layers.Dense(
-            32,
-            activation="relu",
-            #kernel_initializer=tf.keras.initializers.Zeros()
-        )(action_out)
+    def save_model(self):
+        torch.save(self.actor, "./brains/torch_actor.pt")
 
-        concat = layers.Concatenate()([state_output, action_out])
-
-        out = layers.Dense(128,
-         activation="relu",
-        # kernel_initializer=tf.keras.initializers.Zeros()
-        )(concat)
-        out = layers.Dense(64,
-         activation="relu", 
-         #kernel_initializer=tf.keras.initializers.Zeros()
-        )(out)
-        outputs = layers.Dense(1,
-         activation="linear",
-         #kernel_initializer=tf.keras.initializers.Zeros()
-         )(out)
-
-        model = tf.keras.Model([state_input, action_input], outputs)
-
-        return model
-
-    def Normalizeto01(self, data):
-        return (data + 1)/2
-        
-    def get_epsilon(self):
-        return max(Drifter.epsilon_min, Drifter.epsilon * math.exp(-self.t * Drifter.epsilon_decay))
-
-    def __call__(self, state, training=True):
-        # Convert to batch
-        state_batch = tf.expand_dims(tf.convert_to_tensor(state), 0)
-
-        # Convert back to one sample
-        actions = tf.squeeze(self.actor(state_batch)).numpy()
-
-        noise = self.noise()
-
-        boundaries = self.action_space
-
-        actions = np.clip(actions, boundaries[0], boundaries[1])
-        #actions[1] = self.Normalizeto01(actions[1])
-
-        if not Drifter.epsilon_noise:
-            noise *= 1 / self.t
-
-        epsilon = self.get_epsilon()
-        if training and (random() <= epsilon): 
-            actions = noise
-            actions = np.clip(actions, boundaries[0], boundaries[1])
-            #actions[1] = self.Normalizeto01(actions[1])
-
-
-        return actions
-
-    def load_for_exploitation(self):
-        self.actor.load_weights("./brains/weights")
-
-    def save_for_exploitation(self):
-        self.actor.save_weights("./brains/weights")
+    def load_model(self):
+        self.actor = torch.load("./brains/torch_actor.pt")
