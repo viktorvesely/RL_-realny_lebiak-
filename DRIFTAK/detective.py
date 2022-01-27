@@ -1,6 +1,9 @@
 import numpy as np
 
-loss_every = 50
+loss_every = 400
+weights_every = 400
+
+debug_weights = True
 
 class Detective:
 
@@ -16,46 +19,64 @@ class Detective:
         self.taws = []
         self.tcws = []
 
+        self.rewards = []
+
+        self.cummulativeReward = 0
+
 
     def on_train(self, actor_loss, critic_loss):
         if self.train_n % loss_every == 0:
             self.loss.append([actor_loss, critic_loss])
-        self.train_n += 1
         
-        aws = self.model.actor.get_weights()
-        cws = self.model.critic.get_weights()
-        
-        aw = [aws[0][1][4], aws[0][1][93], aws[4][42][15], aws[4][8][30], aws[6][2][0], aws[6][16][0]]
-        cw = [cws[2][90][30], cws[2][80][3], cws[4][0][50], cws[4][0][100], cws[10][56][10], cws[10][78][32]]
+        if debug_weights: 
 
-        self.aws.append(aw)
-        self.cws.append(cw)
+            if self.train_n % weights_every == 0:
+                aws = self.model.actor.get_weights()
+                cws = self.model.critic.get_weights()
+                
+                aw = [aws[0][1][4], aws[0][1][93], aws[4][42][15], aws[4][8][30], aws[6][2][0], aws[6][16][0]]
+                cw = [cws[2][0][30], cws[2][1][3], cws[4][0][18], cws[4][0][5], cws[10][56][10], cws[10][78][32]]
+
+                self.aws.append(aw)
+                self.cws.append(cw)
+
+        self.train_n += 1
 
     def on_sync(self):
-        aws = self.model.actor_target.get_weights()
-        cws = self.model.critic_target.get_weights()
 
-        aw = [aws[0][1][4], aws[0][1][93], aws[4][42][15], aws[4][8][30], aws[6][2][0], aws[6][16][0]]
-        cw = [cws[2][90][30], cws[2][80][3], cws[4][0][50], cws[4][0][100], cws[10][56][10], cws[10][78][32]]
+        if debug_weights:
 
-        self.taws.append(aw)
-        self.tcws.append(cw)
+            if (self.train_n - 1) % weights_every == 0:
+                aws = self.model.actor_target.get_weights()
+                cws = self.model.critic_target.get_weights()
+
+                aw = [aws[0][1][4], aws[0][1][93], aws[4][42][15], aws[4][8][30], aws[6][2][0], aws[6][16][0]]
+                cw = [cws[2][0][30], cws[2][1][3], cws[4][0][18], cws[4][0][5], cws[10][56][10], cws[10][78][32]]
+
+                self.taws.append(aw)
+                self.tcws.append(cw)
 
     def on_episode(self):
-        pass
+        self.rewards.append(self.cummulativeReward)
+        self.cummulativeReward = 0
+        print(f"Epsilon {self.model.get_epsilon()}")
 
     def on_tick(self, state, action, reward, next_state):
-        pass
+        if self.training:
+            self.cummulativeReward += reward
 
     def on_end(self):
         if self.training:
             loss = np.array(self.loss).T
             np.save(self.path("loss"), loss)
-
-            np.save(self.path("aws"), np.array(self.aws))
-            np.save(self.path("cws"), np.array(self.cws))
-            np.save(self.path("taws"), np.array(self.taws))
-            np.save(self.path("tcws"), np.array(self.tcws))
+            
+            np.save(self.path("reward"), np.array(self.rewards))
+            
+            if debug_weights:
+                np.save(self.path("aws"), np.array(self.aws))
+                np.save(self.path("cws"), np.array(self.cws))
+                np.save(self.path("taws"), np.array(self.taws))
+                np.save(self.path("tcws"), np.array(self.tcws))
 
     def path(self, name):
         return "./guts/" + name

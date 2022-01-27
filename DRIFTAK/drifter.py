@@ -1,8 +1,10 @@
 import numpy as np
 import tensorflow as tf
+from random import random
 from tensorflow.keras import layers, models
 from tensorflow import keras
 from typing import Any, List, Sequence, Tuple
+import math
 
 
 from gaussianNoise import GaussianNoise
@@ -10,15 +12,18 @@ from gaussianNoise import GaussianNoise
 
 class Drifter(tf.keras.Model):
 
-    tau = 0.1
+    tau = 0.0001
     max_nosie_std = 1.5
     gamma = 0.98
 
     critic_lr = 0.004
     actor_lr = 0.002
 
-    stable_noise = True
-    stable_noise_std = 0.15
+    epsilon_noise = True
+    epsilon = 1
+    epsilon_decay = 0.0006
+    epsilon_min = 0.08
+    epsilon_noise_std = 0.9
 
     def __init__(
       self, 
@@ -42,8 +47,11 @@ class Drifter(tf.keras.Model):
         self.critic_optimizer = tf.keras.optimizers.Adam(Drifter.critic_lr)
         self.actor_optimizer = tf.keras.optimizers.Adam(Drifter.actor_lr)
 
+        self.actor.compile(optimizer=self.actor_optimizer, loss="mse")
+        self.critic.compile(optimizer=self.critic_optimizer, loss="mse")
+
         self.noise = GaussianNoise(
-            Drifter.stable_noise_std if Drifter.stable_noise else Drifter.max_nosie_std,
+            Drifter.epsilon_noise_std if Drifter.epsilon_noise else Drifter.max_nosie_std,
             self.num_actions()
         )
         self.t = 0
@@ -68,21 +76,21 @@ class Drifter(tf.keras.Model):
                 tf.math.square(critic_value - critic_value_hat)
             )
 
-        critic_grad = tape.gradient(critic_loss, self.critic.trainable_weights)
+        critic_grad = tape.gradient(critic_loss, self.critic.trainable_variables)
         self.critic_optimizer.apply_gradients(
-            zip(critic_grad, self.critic.trainable_weights)
+            zip(critic_grad, self.critic.trainable_variables)
         )
 
         with tf.GradientTape() as tape:
             actions_hat = self.actor(states, training=True)
-            critic_value = self.critic([states, actions_hat], training=True)
+            critic_value = self.critic([states, actions_hat])
             # Used `-value` as we want to maximize the value given
             # by the critic for our actions
             actor_loss = -tf.math.reduce_mean(critic_value)
 
-        actor_grad = tape.gradient(actor_loss, self.actor.trainable_weights)
+        actor_grad = tape.gradient(actor_loss, self.actor.trainable_variables)
         self.actor_optimizer.apply_gradients(
-            zip(actor_grad, self.actor.trainable_weights)
+            zip(actor_grad, self.actor.trainable_variables)
         )
 
         return tf.math.reduce_mean(actor_loss), tf.math.reduce_mean(critic_loss)
@@ -115,8 +123,7 @@ class Drifter(tf.keras.Model):
         actor.add(layers.Dense(32, activation='relu'))
         actor.add(layers.Dense(
             self.num_actions(),
-            activation='tanh',
-            bias_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=0.008, seed=None)))
+            activation='tanh'))
 
         return actor
         
@@ -124,6 +131,7 @@ class Drifter(tf.keras.Model):
     def learn(self, batch):
 
         states, actions, rewards, next_states = batch
+        self.t += 1
 
         self.__at_least_one_training = True
     
@@ -139,28 +147,42 @@ class Drifter(tf.keras.Model):
 
         state_input = keras.Input(shape=self.state_shape)
 
-        state_output = layers.Dense(128,
-            activation='relu',
-        )(state_input)
-
         state_output = layers.Dense(64,
             activation='relu',
-        )(state_output)
+            #kernel_initializer=tf.keras.initializers.Zeros()
+        )(state_input)
 
         state_output = layers.Dense(32,
             activation='relu',
+            #kernel_initializer=tf.keras.initializers.Zeros()
         )(state_output)
 
 
         action_input = keras.Input(shape=(self.num_actions()))
-        action_out = layers.Dense(128, activation="relu")(action_input)
-        action_out = layers.Dense(64, activation="relu")(action_out)
+        action_out = layers.Dense(64, 
+            activation="relu",
+            #kernel_initializer=tf.keras.initializers.Zeros()
+        )(action_input)
+        action_out = layers.Dense(
+            32,
+            activation="relu",
+            #kernel_initializer=tf.keras.initializers.Zeros()
+        )(action_out)
 
         concat = layers.Concatenate()([state_output, action_out])
 
-        out = layers.Dense(128, activation="relu")(concat)
-        out = layers.Dense(64, activation="linear")(out)
-        outputs = layers.Dense(1, activation="linear")(out)
+        out = layers.Dense(128,
+         activation="relu",
+        # kernel_initializer=tf.keras.initializers.Zeros()
+        )(concat)
+        out = layers.Dense(64,
+         activation="relu", 
+         #kernel_initializer=tf.keras.initializers.Zeros()
+        )(out)
+        outputs = layers.Dense(1,
+         activation="linear",
+         #kernel_initializer=tf.keras.initializers.Zeros()
+         )(out)
 
         model = tf.keras.Model([state_input, action_input], outputs)
 
@@ -169,6 +191,8 @@ class Drifter(tf.keras.Model):
     def Normalizeto01(self, data):
         return (data + 1)/2
         
+    def get_epsilon(self):
+        return max(Drifter.epsilon_min, Drifter.epsilon * math.exp(-self.t * Drifter.epsilon_decay))
 
     def __call__(self, state, training=True):
         # Convert to batch
@@ -184,11 +208,12 @@ class Drifter(tf.keras.Model):
         actions = np.clip(actions, boundaries[0], boundaries[1])
         #actions[1] = self.Normalizeto01(actions[1])
 
-        if not Drifter.stable_noise:
+        if not Drifter.epsilon_noise:
             noise *= 1 / self.t
 
-        if training: 
-            actions += noise
+        epsilon = self.get_epsilon()
+        if training and (random() <= epsilon): 
+            actions = noise
             actions = np.clip(actions, boundaries[0], boundaries[1])
             #actions[1] = self.Normalizeto01(actions[1])
 
