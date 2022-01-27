@@ -6,6 +6,9 @@ import torch.nn.functional as F
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+WEIGHTS_FINAL_INIT = 3e-3
+BIAS_FINAL_INIT = 3e-4
+
 class Actor(nn.Module):
     def __init__(self, state_shape, action_space):
         super(Actor, self).__init__()
@@ -14,12 +17,15 @@ class Actor(nn.Module):
         self.state_shape = state_shape
         num_actions = self.num_actions()
 
-        self.network_size = [128, 64, 32]
+        self.network_size = [64, 32, 16]
 
         self.layer1 = nn.Linear(state_shape[0], self.network_size[0])
         self.layer2 = nn.Linear(self.network_size[0], self.network_size[1]) 
         self.layer3 = nn.Linear(self.network_size[1], self.network_size[2])
         self.layer4 = nn.Linear(self.network_size[2], num_actions)
+
+        nn.init.uniform_(self.layer4.weight, -WEIGHTS_FINAL_INIT, WEIGHTS_FINAL_INIT)
+        nn.init.uniform_(self.layer4.bias, -BIAS_FINAL_INIT, BIAS_FINAL_INIT)
 
     
     def num_actions(self):
@@ -44,7 +50,7 @@ class Critic(nn.Module):
         self.action_space = action_space
         num_actions = self.num_actions()
 
-        self.network_size = [128, 64, 128, 64]
+        self.network_size = [64, 32, 64, 32]
 
         self.layer1 = nn.Linear(state_shape[0], self.network_size[0])
         self.layer2 = nn.Linear(self.network_size[0], self.network_size[1]) 
@@ -52,6 +58,9 @@ class Critic(nn.Module):
         self.layer3 = nn.Linear(self.network_size[1] + num_actions, self.network_size[2])
         self.layer4 = nn.Linear(self.network_size[2], self.network_size[3])
         self.layer5 = nn.Linear(self.network_size[3], 1)
+
+        nn.init.uniform_(self.layer5.weight, -WEIGHTS_FINAL_INIT, WEIGHTS_FINAL_INIT)
+        nn.init.uniform_(self.layer5.bias, -BIAS_FINAL_INIT, BIAS_FINAL_INIT)
 
     
     def num_actions(self):

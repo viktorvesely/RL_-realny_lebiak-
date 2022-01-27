@@ -35,8 +35,8 @@ class Drifter:
         self.ou_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(self.num_actions()),
                                             sigma=float(Drifter.noise_stddev) * np.ones(self.num_actions()))
 
-        self.actor_optimizer = Adam(self.actor.parameters(), lr=1e-4) 
-        self.critic_optimizer = Adam(self.critic.parameters(), lr=1e-3, weight_decay=1e-2) 
+        self.actor_optimizer = Adam(self.actor.parameters(), lr=1e-4, weight_decay=5e-3) 
+        self.critic_optimizer = Adam(self.critic.parameters(), lr=1e-3, weight_decay=5e-2) 
 
 
     def soft_update(self, target, source, tau):
