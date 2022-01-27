@@ -8,16 +8,16 @@ from drifter import Drifter
 from experiences import Buffer
 from detective import Detective
 
-n_episodes = 3
-n_frames = 800
+n_episodes = 50
+n_frames = 400
 inspect = False
-experience_buffer_size = 10_000
+experience_buffer_size = 100000
 batch_size = 1000
 
 update_every = 2
 sync_every = 2
 
-env = gym.make('MountainCarContinuous-v0')
+env = gym.make('LunarLanderContinuous-v2')
 buffer = Buffer(
     experience_buffer_size,
     batch_size,
@@ -62,6 +62,9 @@ def learn():
 
         
             next_state, reward, done, _ = env.step(action)
+
+            if (done):
+                break
             
             buffer.record(state, action, reward, next_state)
             detective.on_tick(state, action, reward, next_state)

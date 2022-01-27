@@ -10,7 +10,7 @@ from gaussianNoise import GaussianNoise
 
 class Drifter(tf.keras.Model):
 
-    tau = 0.1
+    tau = 0.001
     max_nosie_std = 1.5
     gamma = 0.98
 
@@ -108,6 +108,9 @@ class Drifter(tf.keras.Model):
         self.sync_actor()
 
     def init_actor(self):
+
+        last_init = tf.random_uniform_initializer(minval=-0.003, maxval=0.003)
+
         actor = models.Sequential()
         actor.add(layers.InputLayer(input_shape=self.state_shape))
         actor.add(layers.Dense(128, activation='relu'))
@@ -115,7 +118,8 @@ class Drifter(tf.keras.Model):
         actor.add(layers.Dense(32, activation='relu'))
         actor.add(layers.Dense(
             self.num_actions(),
-            activation='tanh',
+            activation='sigmoid',
+            kernel_initializer=last_init,
             bias_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=0.008, seed=None)))
 
         return actor
@@ -139,17 +143,9 @@ class Drifter(tf.keras.Model):
 
         state_input = keras.Input(shape=self.state_shape)
 
-        state_output = layers.Dense(128,
-            activation='relu',
-        )(state_input)
-
-        state_output = layers.Dense(64,
-            activation='relu',
-        )(state_output)
-
-        state_output = layers.Dense(32,
-            activation='relu',
-        )(state_output)
+        state_output = layers.Dense(128, activation='relu') (state_input)
+        state_output = layers.Dense(64, activation='relu') (state_input)
+        state_output = layers.Dense(32, activation='relu') (state_input)
 
 
         action_input = keras.Input(shape=(self.num_actions()))
