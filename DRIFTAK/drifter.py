@@ -84,15 +84,17 @@ class Drifter:
 
         return np.squeeze(action.cpu().numpy())
     
-    def update(self, states, actions, rewards, next_states):
+    def update(self, states, actions, rewards, next_states, dones):
 
         next_actions = self.actor_target(next_states)
         # TODO what exactly is detach
         Q_target_next = self.critic_target(next_states, next_actions.detach())
 
         rewards = rewards.unsqueeze(-1)
+        dones = dones.unsqueeze(-1)
+
         gamma = self.pars.get("gamma")
-        td_target = rewards + gamma * Q_target_next
+        td_target = rewards + (1 - dones) * gamma * Q_target_next
 
         # Critic update step
         self.critic_optimizer.zero_grad()
@@ -113,13 +115,14 @@ class Drifter:
 
     def learn(self, batch):
 
-        states, actions, rewards, next_states = batch
+        states, actions, rewards, next_states, dones = batch
     
         return self.update(
             torch.Tensor(states).to(device),
             torch.Tensor(actions).to(device),
             torch.Tensor(rewards).to(device),
-            torch.Tensor(next_states).to(device)
+            torch.Tensor(next_states).to(device),
+            torch.Tensor(dones).to(device)
         )
 
     def set_eval(self):

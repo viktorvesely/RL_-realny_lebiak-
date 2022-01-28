@@ -17,7 +17,8 @@ class Buffer:
             "state": np.zeros(state_buffer_shape, dtype="float32"),
             "action": np.zeros((n_experiences, num_actions), dtype="float32"),
             "reward": np.zeros(n_experiences, dtype="float32"),
-            "next_state": np.zeros(state_buffer_shape, dtype="float32")
+            "next_state": np.zeros(state_buffer_shape, dtype="float32"),
+            "done": np.zeros(n_experiences, dtype=int)
         }
         self.batch_size = batch_size
         self.full = False
@@ -25,11 +26,12 @@ class Buffer:
     def __len__(self):
         return self.n_experiences if self.full else self.head
     
-    def record(self, state, action, reward, nextState):
+    def record(self, state, action, reward, nextState, done):
 
         self.experiences["state"][self.head] = np.array(state)
         self.experiences["action"][self.head] = np.array(action)
         self.experiences["reward"][self.head] = reward
+        self.experiences["done"][self.head] = int(done)
         self.experiences["next_state"][self.head] = np.array(nextState)
 
         self.head += 1
@@ -55,7 +57,8 @@ class Buffer:
             self.experiences["state"][indicies],
             self.experiences["action"][indicies],
             self.experiences["reward"][indicies],
-            self.experiences["next_state"][indicies]
+            self.experiences["next_state"][indicies],
+            self.experiences["done"][indicies]
         )
 
 

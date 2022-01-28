@@ -61,11 +61,11 @@ def learn():
             action = drifter(state, training=True)
         
             next_state, reward, done, _ = env.step(action)
+            buffer.record(state, action, reward, next_state, done)
 
             if done:
                 break
-            
-            buffer.record(state, action, reward, next_state)
+        
             detective.on_tick(state, action, reward, next_state)
 
             episodic_reward += reward
