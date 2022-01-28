@@ -8,11 +8,11 @@ from drifter import Drifter
 from experiences import Buffer
 from detective import Detective
 
-n_episodes = 3500
-n_frames = 500
-inspect = False
+n_episodes = 3000
+n_frames = 1000
+inspect = True
 experience_buffer_size = 100_000
-batch_size = 128
+batch_size = 64
 
 
 env = gym.make('LunarLanderContinuous-v2')
@@ -66,7 +66,7 @@ def learn():
             episodic_reward += reward
 
             n_experiences = len(buffer)
-            if n_experiences >= experience_buffer_size:
+            if n_experiences >= batch_size:
                 critic_loss, actor_loss = drifter.learn(buffer())
                 drifter.sync_targets()
                 detective.on_train(actor_loss, critic_loss)
