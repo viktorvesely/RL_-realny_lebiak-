@@ -3,6 +3,7 @@ import torch
 from torch.optim import Adam
 import torch.nn.functional as F
 import numpy as np
+from Params import Params
 
 from networks import Actor, Critic
 from noise import OrnsteinUhlenbeckActionNoise
@@ -11,12 +12,10 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Drifter:
     
-    tau = 0.0005
-    gamma = 0.99
-
-    noise_stddev = 0.2
 
     def __init__(self, action_space, state_shape):
+
+        self.pars = Params()
 
         self.action_space = action_space
         self.state_shape = state_shape
@@ -32,11 +31,22 @@ class Drifter:
         self.hard_update(self.actor_target, self.actor)
         self.hard_update(self.critic_target, self.critic)
 
-        self.ou_noise = OrnsteinUhlenbeckActionNoise(mu=np.zeros(self.num_actions()),
-                                            sigma=float(Drifter.noise_stddev) * np.ones(self.num_actions()))
+        self.ou_noise = OrnsteinUhlenbeckActionNoise(
+            mu=np.zeros(self.num_actions()),
+            sigma=self.pars.get("noise_std") * np.ones(self.num_actions())
+        )
 
-        self.actor_optimizer = Adam(self.actor.parameters(), lr=1e-4) 
-        self.critic_optimizer = Adam(self.critic.parameters(), lr=1e-3, weight_decay=0.002) 
+        self.actor_optimizer = Adam(
+            self.actor.parameters(),
+            lr=self.pars.get("actor_lr"),
+            weight_decay=self.pars.get("actor_weight_decay")
+        )
+
+        self.critic_optimizer = Adam(
+            self.critic.parameters(),
+            lr=self.pars.get("critic_lr"),
+            weight_decay=self.pars.get("critic_weight_decay")
+        ) 
 
 
     def soft_update(self, target, source, tau):
@@ -48,8 +58,8 @@ class Drifter:
             wt.data.copy_(w.data)
 
     def sync_targets(self):
-        self.soft_update(self.critic_target, self.critic, Drifter.tau)
-        self.soft_update(self.actor_target, self.actor, Drifter.tau)
+        self.soft_update(self.critic_target, self.critic, self.pars.get("tau"))
+        self.soft_update(self.actor_target, self.actor, self.pars.get("tau"))
 
     def num_actions(self):
         return self.action_space.T.shape[0]
@@ -63,7 +73,7 @@ class Drifter:
 
         self.actor.eval() 
         action = self.actor(x)
-        self.actor.train()  # Sets the actor in training mode
+        self.actor.train() 
         action = action.data
 
         if training:
@@ -81,7 +91,8 @@ class Drifter:
         Q_target_next = self.critic_target(next_states, next_actions.detach())
 
         rewards = rewards.unsqueeze(-1)
-        td_target = rewards + Drifter.gamma * Q_target_next
+        gamma = self.pars.get("gamma")
+        td_target = rewards + gamma * Q_target_next
 
         # Critic update step
         self.critic_optimizer.zero_grad()
@@ -118,8 +129,16 @@ class Drifter:
         self.critic_target.eval()
 
 
-    def save_model(self):
-        torch.save(self.actor, "./brains/torch_actor.pt")
+    def save_model(self, path=None):
+        if path is None:
+            torch.save(self.actor, "./brains/torch_actor.pt")
+        else:
+            torch.save(self.actor, path)
 
-    def load_model(self):
-        self.actor = torch.load("./brains/torch_actor.pt")
+
+    def load_model(self, path=None):
+        if path is None:
+            self.actor = torch.load("./brains/torch_actor.pt")
+        else:
+            self.actor = torch.load(path)
+
