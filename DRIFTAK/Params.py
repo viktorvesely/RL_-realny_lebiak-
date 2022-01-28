@@ -1,8 +1,13 @@
 import json
+import os
 
 class Params:
+
+    def PARAMS(self):
+        return self.__params
+
     def __init__(self):
-        with open("./params.json", "r", encoding="utf-8") as f:
+        with open(os.path.join(os.getcwd(), 'params.json'), "r", encoding="utf-8") as f:
             self.__params = json.load(f)
 
     

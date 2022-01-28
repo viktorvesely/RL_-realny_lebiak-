@@ -19,6 +19,14 @@
             "program": "./DRIFTAK/gains.py",
             "console": "integratedTerminal",
             "args": ["exploit"]
+        },
+        {
+            "name": "DRIFTAK-EXPERIMENT",
+            "type": "python",
+            "request": "launch",
+            "program": "./DRIFTAK/gains.py",
+            "console": "integratedTerminal",
+            "args": ["experiment", "test", "1"]
         }
     ]
 }

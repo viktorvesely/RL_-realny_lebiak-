@@ -86,12 +86,16 @@ def learn():
     detective.on_end()
     env.close()
 
-def exploit():
+def exploit(name=None, run=None):
     
     drifter = create_drifter()
     detective = Detective(drifter, False)
 
-    drifter.load_model()
+
+    if name is not None:
+        drifter.load_model(os.path.join(os.getcwd(), 'experiments', name, f'actor-{run}.pt'))
+    else:
+        drifter.load_model()
 
     while True:
         state = env.reset()
@@ -240,7 +244,14 @@ if __name__ == "__main__":
         learn()
     elif mode == "exploit":
         print("[EXPLOITING]")
-        exploit()
+
+        name = None
+        run = None
+        if n_args > 2:
+            name = sys.argv[2]
+            run = int(sys.argv[3])
+        exploit(name, run)
+
     elif mode == "experiment":
         if n_args < 4:
             print("Not enough arguments for exepriment mode. Please call:")
@@ -250,6 +261,7 @@ if __name__ == "__main__":
         nRuns = int(sys.argv[3])
         print(f"[EXPERIMENT] running {name} experiment {nRuns} time(s)")
         experiment(nRuns, name)
+        
 
     else:
         print(f"'{mode}' is not correct mode of execution. Accapted values: 'learn', 'exploit', 'experiment'")    
