@@ -193,12 +193,11 @@ def experiment(n_runs, name):
                 action = drifter(state, training=True)
             
                 next_state, reward, done, _ = env.step(action)
+                buffer.record(state, action, reward, next_state, done)
 
                 if done:
                     break
                 
-                buffer.record(state, action, reward, next_state)
-
                 episodic_reward += reward
 
                 n_experiences = len(buffer)
