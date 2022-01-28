@@ -11,7 +11,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Drifter:
     
-    tau = 0.001
+    tau = 0.0005
     gamma = 0.99
 
     noise_stddev = 0.2
@@ -36,7 +36,7 @@ class Drifter:
                                             sigma=float(Drifter.noise_stddev) * np.ones(self.num_actions()))
 
         self.actor_optimizer = Adam(self.actor.parameters(), lr=1e-4) 
-        self.critic_optimizer = Adam(self.critic.parameters(), lr=1e-3) 
+        self.critic_optimizer = Adam(self.critic.parameters(), lr=1e-3, weight_decay=0.002) 
 
 
     def soft_update(self, target, source, tau):

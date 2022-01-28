@@ -8,10 +8,10 @@ from drifter import Drifter
 from experiences import Buffer
 from detective import Detective
 
-n_episodes = 500
-n_frames = 1500
+n_episodes = 3500
+n_frames = 500
 inspect = False
-experience_buffer_size = 500_000
+experience_buffer_size = 100_000
 batch_size = 128
 
 
@@ -66,7 +66,7 @@ def learn():
             episodic_reward += reward
 
             n_experiences = len(buffer)
-            if n_experiences >= batch_size:
+            if n_experiences >= experience_buffer_size:
                 critic_loss, actor_loss = drifter.learn(buffer())
                 drifter.sync_targets()
                 detective.on_train(actor_loss, critic_loss)

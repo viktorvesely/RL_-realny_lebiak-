@@ -20,7 +20,7 @@ class Actor(nn.Module):
         self.network_size = [64, 32, 16]
 
         self.layer1 = nn.Linear(state_shape[0], self.network_size[0])
-        self.layer2 = nn.Linear(self.network_size[0], self.network_size[1]) 
+        self.layer2 = nn.Linear(self.network_size[0], self.network_size[1])
         self.layer3 = nn.Linear(self.network_size[1], self.network_size[2])
         self.layer4 = nn.Linear(self.network_size[2], num_actions)
 
