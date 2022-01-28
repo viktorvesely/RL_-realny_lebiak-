@@ -8,7 +8,7 @@ from drifter import Drifter
 from experiences import Buffer
 from detective import Detective
 
-n_episodes = 3500
+n_episodes = 3000
 n_frames = 500
 inspect = False
 experience_buffer_size = 100_000
